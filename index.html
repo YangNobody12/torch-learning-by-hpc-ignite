@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Tensor Tutorial - เรียนรู้พื้นฐาน PyTorch</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="hero-icon">🔥</div>
+        <h1>PyTorch Tensor Tutorial</h1>
+        <p>เรียนรู้พื้นฐาน PyTorch อย่างง่ายๆ ใน 15 นาที</p>
+    </header>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="#intro" class="active">บทนำ</a>
+            <a href="#init">สร้าง Tensor</a>
+            <a href="#attributes">Attributes</a>
+            <a href="#operations">Operations</a>
+            <a href="#numpy">NumPy Bridge</a>
+            <a href="data.html">Datasets</a>
+            <a href="transforms.html">Transforms</a>
+        </nav>
+
+        <section id="intro" class="section">
+            <h2>Tensor คืออะไร? <span class="badge">สำคัญ</span></h2>
+            <p>
+                <span class="highlight">Tensor</span> คือโครงสร้างข้อมูลที่คล้ายกับ Array และ Matrix 
+                ใน PyTorch เราใช้ Tensor เพื่อเก็บข้อมูล Input/Output ของโมเดล และ Parameters ของโมเดล
+            </p>
+            <p>
+                Tensor คล้ายกับ <span class="highlight">NumPy Arrays</span> แต่มีความสามารถพิเศษกว่า:
+            </p>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div>🚀</div>
+                    <h4>GPU Support</h4>
+                    <p>รันบน GPU ได้เร็วกว่า CPU มาก</p>
+                </div>
+                <div class="feature-card">
+                    <div>🔗</div>
+                    <h4>NumPy Bridge</h4>
+                    <p>แชร์ Memory กับ NumPy ได้</p>
+                </div>
+                <div class="feature-card">
+                    <div>📊</div>
+                    <h4>Auto Differentiation</h4>
+                    <p>คำนวณ Gradient อัตโนมัติ</p>
+                </div>
+            </div>
+
+            <h3>รูปทรงของ Tensor</h3>
+            <div class="intro-shapes">
+                <div class="intro-shape">
+                    <div id="shape-1d" class="shape-3d"></div>
+                    <p>1D Tensor</p>
+                    <span class="shape-desc">shape: [n]</span>
+                </div>
+                <div class="intro-shape">
+                    <div id="shape-2d" class="shape-3d"></div>
+                    <p>2D Tensor</p>
+                    <span class="shape-desc">shape: [rows, cols]</span>
+                </div>
+                <div class="intro-shape">
+                    <div id="shape-3d" class="shape-3d"></div>
+                    <p>3D Tensor</p>
+                    <span class="shape-desc">shape: [depth, rows, cols]</span>
+                </div>
+            </div>
+            
+            <h3>Import PyTorch</h3>
+            <pre><code><span class="keyword">import</span> torch
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np</code></pre>
+        </section>
+
+        <section id="init" class="section">
+            <h2>การสร้าง Tensor</h2>
+            
+            <h3>1. สร้างจาก Data โดยตรง</h3>
+            <pre><code><span class="comment"># สร้าง Tensor จาก List</span>
+data = [[<span class="number">1</span>, <span class="number">2</span>], [<span class="number">3</span>, <span class="number">4</span>]]
+x_data = <span class="keyword">torch.tensor</span>(data)
+<span class="keyword">print</span>(x_data)</code></pre>
+            <div class="output" data-for="tensor-from-data">
+tensor([[1, 2],
+        [3, 4]])</div>
+
+            <h3>2. สร้างจาก NumPy Array</h3>
+            <pre><code><span class="comment"># NumPy → Tensor</span>
+np_array = np.array(data)
+x_np = <span class="keyword">torch.from_numpy</span>(np_array)
+<span class="keyword">print</span>(x_np)</code></pre>
+            <div class="output" data-for="tensor-numpy">
+tensor([[1, 2],
+        [3, 4]], dtype=<span class="keyword">torch.int64</span>)</div>
+
+            <h3>3. สร้างจาก Tensor อื่น</h3>
+            <pre><code><span class="comment"># ones_like - สร้าง Tensor 1 ทุกตัว โดยคง dtype เดิม</span>
+x_ones = <span class="keyword">torch.ones_like</span>(x_data)
+<span class="keyword">print</span>(<span class="string">"Ones:"</span>, x_ones)
+
+<span class="comment"># rand_like - สร้าง Tensor สุ่ม แต่เปลี่ยน dtype เป็น float</span>
+x_rand = <span class="keyword">torch.rand_like</span>(x_data, dtype=<span class="keyword">torch.float</span>)
+<span class="keyword">print</span>(<span class="string">"Random:"</span>, x_rand)</code></pre>
+            <div class="output" data-for="tensor-ones">
+Ones: tensor([[1, 1],
+        [1, 1]])</div>
+            <div class="output" data-for="tensor-random" style="margin-top: 0.5rem;">
+Random: tensor([[0.9384, 0.7865],
+        [0.7892, 0.4744]])</div>
+
+            <h3>4. สร้างด้วย Shape โดยตรง</h3>
+            <pre><code>shape = (<span class="number">2</span>, <span class="number">3</span>)
+
+rand_tensor = <span class="keyword">torch.rand</span>(shape)    <span class="comment"># สุ่ม 0-1</span>
+ones_tensor = <span class="keyword">torch.ones</span>(shape)    <span class="comment"># ทุกค่าเป็น 1</span>
+zeros_tensor = <span class="keyword">torch.zeros</span>(shape)  <span class="comment"># ทุกค่าเป็น 0</span>
+
+<span class="keyword">print</span>(<span class="string">"Random:"</span>, rand_tensor)
+<span class="keyword">print</span>(<span class="string">"Ones:"</span>, ones_tensor)
+<span class="keyword">print</span>(<span class="string">"Zeros:"</span>, zeros_tensor)</code></pre>
+            <div class="output" data-for="tensor-rand-2x3">
+Random: tensor([[0.6256, 0.9802, 0.3952],
+        [0.8913, 0.4432, 0.6212]])</div>
+            <div class="output" data-for="tensor-ones-2x3">
+Ones: tensor([[1., 1., 1.],
+        [1., 1., 1.]])</div>
+            <div class="output" data-for="tensor-zeros-2x3">
+Zeros: tensor([[0., 0., 0.],
+        [0., 0., 0.]])</div>
+        </section>
+
+        <section id="attributes" class="section">
+            <h2>Attributes ของ Tensor</h2>
+            <p>Tensor มี properties สำคัญ 3 อย่าง:</p>
+            
+            <pre><code>tensor = <span class="keyword">torch.rand</span>(<span class="number">3</span>, <span class="number">4</span>)
+
+<span class="keyword">print</span>(<span class="string">"Shape:"</span>, tensor<span class="keyword">.shape</span>)    <span class="comment"># ขนาดของ Tensor</span>
+<span class="keyword">print</span>(<span class="string">"Dtype:"</span>, tensor<span class="keyword">.dtype</span>)   <span class="comment"># ชนิดของข้อมูล</span>
+<span class="keyword">print</span>(<span class="string">"Device:"</span>, tensor<span class="keyword">.device</span>) <span class="comment"># อุปกรณ์ที่เก็บ (CPU/GPU)</span></code></pre>
+            <div class="output" data-for="tensor-attr">
+Shape: torch.Size([3, 4])
+Dtype: <span class="keyword">torch.float32</span>
+Device: cpu</div>
+
+            <div class="tip-box">
+                <strong>Shape</strong> บอกขนาด เช่น [3, 4] หมายถึง 3 แถว 4 คอลัมน์<br>
+                <strong>Dtype</strong> ชนิดข้อมูล เช่น float32, int64<br>
+                <strong>Device</strong> บอกว่าอยู่ CPU หรือ GPU
+            </div>
+        </section>
+
+        <section id="operations" class="section">
+            <h2>การใช้งาน Tensor</h2>
+
+            <h3>1. Indexing และ Slicing</h3>
+            <pre><code>tensor = <span class="keyword">torch.ones</span>(<span class="number">4</span>, <span class="number">4</span>)
+
+<span class="keyword">print</span>(<span class="string">"First row:"</span>, tensor[<span class="number">0</span>])
+<span class="keyword">print</span>(<span class="string">"First column:"</span>, tensor[:, <span class="number">0</span>])
+<span class="keyword">print</span>(<span class="string">"Last column:"</span>, tensor[..., <span class="number">-1</span>])
+
+tensor[:, <span class="number">1</span>] = <span class="number">0</span>  <span class="comment"># เปลี่ยนคอลัมน์ที่ 2 เป็น 0</span>
+<span class="keyword">print</span>(tensor)</code></pre>
+            <div class="output" data-for="tensor-indexing">
+First row: tensor([0., 1., 1., 1.])
+First column: tensor([0., 0., 0., 0.])
+Last column: tensor([1., 1., 1., 1.])
+tensor([[0., 1., 1., 1.],
+        [0., 1., 1., 1.],
+        [0., 1., 1., 1.],
+        [0., 1., 1., 1.]])</div>
+
+            <h3>2. รวม Tensor ด้วย Cat / Stack</h3>
+            <pre><code><span class="comment"># torch.cat - รวมตามแกนที่กำหนด</span>
+t1 = <span class="keyword">torch.cat</span>([tensor, tensor, tensor], dim=<span class="number">1</span>)
+<span class="keyword">print</span>(t1<span class="keyword">.shape</span>)  <span class="comment"># (4, 12)</span>
+<span class="keyword">print</span>(t1)</code></pre>
+            <div class="output" data-for="tensor-cat">
+tensor([[1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.],
+        [1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.],
+        [1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.],
+        [1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.]])</div>
+
+            <h3>3. การคำนวณทางคณิตศาสตร์</h3>
+            <pre><code><span class="comment"># Matrix Multiplication (@ หรือ matmul)</span>
+y1 = tensor @ tensor<span class="keyword">.T</span>
+y2 = tensor<span class="keyword">.matmul</span>(tensor<span class="keyword">.T</span>)
+<span class="keyword">print</span>(<span class="string">"Matrix Mul:"</span>, y1)
+
+<span class="comment"># Element-wise Multiplication (* หรือ mul)</span>
+z1 = tensor * tensor
+z2 = tensor.mul(tensor)
+<span class="keyword">print</span>(<span class="string">"Element-wise:"</span>, z1)</code></pre>
+            <div class="output" data-for="tensor-matmull">
+Matrix Mul: tensor([[3., 3., 3., 3.],
+        [3., 3., 3., 3.],
+        [3., 3., 3., 3.],
+        [3., 3., 3., 3.]])</div>
+            <div class="output" data-for="tensor-element" style="margin-top: 0.5rem;">
+Element-wise: tensor([[1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.]])</div>
+
+            <h3>4. แปลง Tensor เป็น Python Value</h3>
+            <pre><code>agg = tensor.sum()
+item = agg<span class="keyword">.item</span>()
+<span class="keyword">print</span>(item, type(item))</code></pre>
+            <div class="output" data-for="tensor-item">
+12.0 &lt;class 'float'&gt;</div>
+
+            <h3>5. In-place Operations</h3>
+            <pre><code><span class="comment"># In-place operations มี _ ต่อท้าย เช่น add_</span>
+print(<span class="string">"ก่อน:"</span>, tensor)
+tensor.add_(<span class="number">5</span>)
+<span class="keyword">print</span>(<span class="string">"หลัง add_(5):"</span>, tensor)</code></pre>
+            <div class="output" data-for="tensor-before">
+ก่อน: tensor([[1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.]])</div>
+            <div class="output" data-for="tensor-after" style="margin-top: 0.5rem;">
+หลัง add_(5): tensor([[6., 5., 6., 6.],
+        [6., 5., 6., 6.],
+        [6., 5., 6., 6.],
+        [6., 5., 6., 6.]])</div>
+
+            <div class="tip-box">
+                <strong>หมายเหตุ:</strong> In-place operations ประหยัด memory แต่อาจมีปัญหากับการคำนวณ derivative เพราะเปลี่ยน history
+            </div>
+        </section>
+
+        <section id="numpy" class="section">
+            <h2>NumPy Bridge <span class="badge">สำคัญมาก</span></h2>
+            <p>Tensor และ NumPy Array สามารถแชร์ Memory กันได้ ทำให้เปลี่ยนค่าอันหนึ่งอีกอันก็เปลี่ยนตาม</p>
+
+            <h3>Tensor → NumPy</h3>
+            <pre><code>t = <span class="keyword">torch.ones</span>(<span class="number">5</span>)
+<span class="keyword">print</span>(<span class="string">"Tensor:"</span>, t)
+
+n = t<span class="keyword">.numpy</span>()
+<span class="keyword">print</span>(<span class="string">"NumPy:"</span>, n)
+
+<span class="comment"># เปลี่ยน Tensor, NumPy ก็เปลี่ยนตาม!</span>
+t.add_(<span class="number">1</span>)
+<span class="keyword">print</span>(<span class="string">"Tensor หลัง add(1):"</span>, t)
+<span class="keyword">print</span>(<span class="string">"NumPy หลัง add(1):"</span>, n)</code></pre>
+            <div class="output" data-for="tensor-numpy-ones">
+Tensor: tensor([1., 1., 1., 1., 1.])
+NumPy: [1. 1. 1. 1. 1.]
+Tensor หลัง add(1): tensor([2., 2., 2., 2., 2.])
+NumPy หลัง add(1): [2. 2. 2. 2. 2.]</div>
+
+            <h3>NumPy → Tensor</h3>
+            <pre><code>n = np.ones(<span class="number">5</span>)
+t = <span class="keyword">torch.from_numpy</span>(n)
+
+<span class="comment"># เปลี่ยน NumPy, Tensor ก็เปลี่ยนตาม!</span>
+np.add(n, <span class="number">1</span>, out=n)
+<span class="keyword">print</span>(<span class="string">"NumPy:"</span>, n)
+<span class="keyword">print</span>(<span class="string">"Tensor:"</span>, t)</code></pre>
+            <div class="output" data-for="tensor-numpy-from">
+NumPy: [2. 2. 2. 2. 2.]
+Tensor: tensor([2., 2., 2., 2., 2.], dtype=<span class="keyword">torch.float64</span>)</div>
+        </section>
+
+        <section class="section">
+            <h2>🎉 สรุป</h2>
+            <p>ในบทเรียนนี้เราได้เรียนรู้:</p>
+            <ul style="margin-left: 2rem; color: #b0b0b0;">
+                <li>Tensor คืออะไร และทำไมต้องใช้</li>
+                <li>วิธีสร้าง Tensor หลายแบบ</li>
+                <li>Attributes ของ Tensor</li>
+                <li>การทำ Operations ต่างๆ</li>
+                <li>การเชื่อมต่อกับ NumPy</li>
+            </ul>
+            <div class="tip-box">
+                <strong>ขั้นตอนต่อไป:</strong> ลองเรียนรู้ <a href="https://pytorch.org/tutorials/beginner/basics/data_tutorial.html" style="color: #EE4C2C;">Datasets & DataLoaders</a> และ <a href="https://pytorch.org/tutorials/beginner/basics/autogradqs_tutorial.html" style="color: #EE4C2C;">Autograd</a>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>สร้างด้วย ❤️ จาก <a href="https://pytorch.org">PyTorch</a> Tutorial</p>
+    </footer>
+
+    <script src="js/tree.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/three-view.js"></script>
+    <script src="js/tooltip.js"></script>
+</body>
+</html>

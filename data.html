@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datasets & DataLoaders - PyTorch Tutorial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .flow-diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        .flow-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid;
+            border-radius: 16px;
+            padding: 2rem 2.5rem;
+            text-align: center;
+            min-width: 160px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .flow-box:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+        .flow-box.dataset { border-color: #3b82f6; box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2); }
+        .flow-box.dataloader { border-color: #10b981; box-shadow: 0 8px 32px rgba(16, 185, 129, 0.2); }
+        .flow-box.model { border-color: #f59e0b; box-shadow: 0 8px 32px rgba(245, 158, 11, 0.2); }
+        .flow-arrow {
+            font-size: 2.5rem;
+            color: #64748b;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(5px); }
+        }
+        .step-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .step-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .step-card.__init__ { border-color: #3b82f6; }
+        .step-card.__len__ { border-color: #10b981; }
+        .step-card.__getitem__ { border-color: #8b5cf6; }
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #EE4C2C, #FF6B35);
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 12px;
+            box-shadow: 0 4px 12px rgba(238, 76, 44, 0.4);
+        }
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .mini-code {
+            background: linear-gradient(135deg, #1e1e3f, #0f0f23);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            white-space: pre;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .param-tag {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.1));
+            color: #c4b5fd;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            margin-left: 0.3rem;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .class-card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .class-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+        }
+        .batch-visual {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+        }
+        .batch-group {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .batch-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 32px);
+            gap: 6px;
+            margin-top: 0.75rem;
+        }
+        .batch-item {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s;
+        }
+        .batch-item:hover {
+            transform: scale(1.15);
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .comparison-table th {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+            color: #7dd3fc;
+            font-weight: 600;
+        }
+        .comparison-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .comparison-table td:first-child {
+            color: #fbbf24;
+            font-weight: 600;
+            font-family: 'Fira Code', monospace;
+        }
+        .info-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.05));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .info-icon {
+            font-size: 2rem;
+        }
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #EE4C2C, #FF6B35);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(238, 76, 44, 0.3);
+        }
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(238, 76, 44, 0.4);
+        }
+        .nav-btn.green {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+        }
+        .nav-btn.green:hover {
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="hero-icon">🔥</div>
+        <h1>Datasets & DataLoaders</h1>
+        <p>เรียนรู้การโหลดและเตรียมข้อมูลใน PyTorch</p>
+    </header>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html">Tensor</a>
+            <a href="#" class="active">Datasets</a>
+            <a href="transforms.html">Transforms</a>
+        </nav>
+
+        <section id="intro" class="section">
+            <h2>🎯 Dataset & DataLoader คืออะไร?</h2>
+            
+            <div class="highlight-box">
+                <p style="font-size: 1.2rem; color: #fbbf24; margin: 0;">
+                    💡 แยกโค้ดข้อมูลออกจากโค้ดโมเดล → อ่านง่าย ดูแลง่าย
+                </p>
+            </div>
+
+            <h3>📊 การไหลของข้อมูล</h3>
+            <div class="flow-diagram">
+                <div class="flow-box dataset">
+                    <div style="font-size: 3rem;">📦</div>
+                    <h4 style="color: #3b82f6; margin: 0.5rem 0;">Dataset</h4>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">เก็บข้อมูล & labels</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box dataloader">
+                    <div style="font-size: 3rem;">🔄</div>
+                    <h4 style="color: #10b981; margin: 0.5rem 0;">DataLoader</h4>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">แบ่ง batch, shuffle</p>
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-box model">
+                    <div style="font-size: 3rem;">🧠</div>
+                    <h4 style="color: #f59e0b; margin: 0.5rem 0;">Model</h4>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">นำไปเทรน</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="what-is" class="section">
+            <h2>📦 Dataset คืออะไร?</h2>
+            <p>Dataset เป็นตัวเก็บรวบรวมข้อมูล ประกอบด้วย:</p>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div style="font-size: 2.5rem;">🖼️</div>
+                    <h4>Features (X)</h4>
+                    <p>ข้อมูล input เช่น รูปภาพ</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size: 2.5rem;">🏷️</div>
+                    <h4>Labels (y)</h4>
+                    <p>คำตอบที่ถูกต้อง</p>
+                </div>
+            </div>
+
+            <h3>🎨 ตัวอย่าง: FashionMNIST Dataset</h3>
+            <p>ภาพเสื้อผ้า 28×28 grayscale มี 10 classes:</p>
+            
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin: 1.5rem 0;">
+                <div class="class-card" style="border-color: #3b82f6;">
+                    <div style="font-size: 2.5rem;">👕</div>
+                    <div style="color: #3b82f6; font-weight: bold; font-size: 1.3rem;">0</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">T-Shirt</div>
+                </div>
+                <div class="class-card" style="border-color: #10b981;">
+                    <div style="font-size: 2.5rem;">👖</div>
+                    <div style="color: #10b981; font-weight: bold; font-size: 1.3rem;">1</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Trouser</div>
+                </div>
+                <div class="class-card" style="border-color: #8b5cf6;">
+                    <div style="font-size: 2.5rem;">🧥</div>
+                    <div style="color: #8b5cf6; font-weight: bold; font-size: 1.3rem;">2</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Pullover</div>
+                </div>
+                <div class="class-card" style="border-color: #f59e0b;">
+                    <div style="font-size: 2.5rem;">👗</div>
+                    <div style="color: #f59e0b; font-weight: bold; font-size: 1.3rem;">3</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Dress</div>
+                </div>
+                <div class="class-card" style="border-color: #ef4444;">
+                    <div style="font-size: 2.5rem;">🧥</div>
+                    <div style="color: #ef4444; font-weight: bold; font-size: 1.3rem;">4</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Coat</div>
+                </div>
+                <div class="class-card" style="border-color: #06b6d4;">
+                    <div style="font-size: 2.5rem;">👡</div>
+                    <div style="color: #06b6d4; font-weight: bold; font-size: 1.3rem;">5</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Sandal</div>
+                </div>
+                <div class="class-card" style="border-color: #ec4899;">
+                    <div style="font-size: 2.5rem;">👔</div>
+                    <div style="color: #ec4899; font-weight: bold; font-size: 1.3rem;">6</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Shirt</div>
+                </div>
+                <div class="class-card" style="border-color: #84cc16;">
+                    <div style="font-size: 2.5rem;">👟</div>
+                    <div style="color: #84cc16; font-weight: bold; font-size: 1.3rem;">7</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Sneaker</div>
+                </div>
+                <div class="class-card" style="border-color: #6366f1;">
+                    <div style="font-size: 2.5rem;">👜</div>
+                    <div style="color: #6366f1; font-weight: bold; font-size: 1.3rem;">8</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Bag</div>
+                </div>
+                <div class="class-card" style="border-color: #f97316;">
+                    <div style="font-size: 2.5rem;">👢</div>
+                    <div style="color: #f97316; font-weight: bold; font-size: 1.3rem;">9</div>
+                    <div style="color: #94a3b8; font-size: 0.9rem;">Ankle Boot</div>
+                </div>
+            </div>
+            
+            <div class="info-box">
+                <div class="info-icon">📊</div>
+                <div>
+                    <p style="margin: 0; color: #10b981; font-weight: 600; font-size: 1.1rem;">
+                        จำนวนภาพ: 
+                        <span style="color: #10b981;">60,000</span> ภาพสำหรับเทรน | 
+                        <span style="color: #10b981;">10,000</span> ภาพสำหรับทดสอบ
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="loading" class="section">
+            <h2>📥 การโหลด Dataset</h2>
+            
+            <pre><code><span class="comment"># Import สิ่งที่ต้องการ</span>
+<span class="keyword">import</span> torch
+<span class="keyword">from</span> torchvision <span class="keyword">import</span> datasets
+<span class="keyword">from</span> torchvision.transforms <span class="keyword">import</span> ToTensor
+
+<span class="comment"># โหลด Training Data</span>
+training_data = <span class="keyword">datasets.FashionMNIST</span>(
+    root=<span class="string">"data"</span>,      <span class="param-tag">root</span>
+    train=<span class="keyword">True</span>,         <span class="param-tag">train</span>
+    download=<span class="keyword">True</span>,       <span class="param-tag">download</span>
+    transform=ToTensor() <span class="param-tag">transform</span>
+)
+
+<span class="comment"># โหลด Test Data</span>
+test_data = <span class="keyword">datasets.FashionMNIST</span>(
+    root=<span class="string">"data"</span>,
+    train=<span class="keyword">False</span>,
+    download=<span class="keyword">True</span>,
+    transform=ToTensor()
+)</code></pre>
+
+            <div class="highlight-box">
+                <h4 style="color: #7dd3fc; margin-top: 0;">📌 พารามิเตอร์สำคัญ:</h4>
+                <table class="comparison-table" style="margin-top: 1rem;">
+                    <tr>
+                        <td><span class="keyword">root</span></td>
+                        <td>ที่เก็บข้อมูล</td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">train</span></td>
+                        <td>True=เทรน, False=ทดสอบ</td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">download</span></td>
+                        <td>ดาวน์โหลดถ้ายังไม่มี</td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">transform</span></td>
+                        <td>แปลงข้อมูล (เช่น เป็น Tensor)</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <section id="access" class="section">
+            <h2>🔍 การเข้าถึงข้อมูล</h2>
+            
+            <p>เข้าถึงเหมือน list: <code style="color: #c586c0;">training_data[index]</code></p>
+
+            <pre><code><span class="comment"># ดึงข้อมูลตัวที่ 0</span>
+img, label = training_data[0]
+
+<span class="keyword">print</span>(img.shape)   <span class="comment"># torch.Size([1, 28, 28])</span>
+<span class="keyword">print</span>(label)        <span class="comment"># 9</span>
+<span class="keyword">print</span>(len(training_data)) <span class="comment"># 60000</span></code></pre>
+        </section>
+
+        <section id="custom" class="section">
+            <h2>🏗️ สร้าง Custom Dataset</h2>
+            
+            <p>Dataset ที่สร้างเองต้องมี 3 ฟังก์ชัน:</p>
+
+            <div class="step-card __init__">
+                <h3><span class="step-number">1</span>__init__</h3>
+                <p style="color: #94a3b8;">รันครั้งเดียวตอนสร้าง object</p>
+                <div class="mini-code">def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+    self.img_labels = pd.read_csv(annotations_file)  # อ่าน labels
+    self.img_dir = img_dir                           # โฟลเดอร์รูป
+    self.transform = transform                       # แปลงรูป</div>
+            </div>
+
+            <div class="step-card __len__">
+                <h3><span class="step-number">2</span>__len__</h3>
+                <p style="color: #94a3b8;">คืนค่าจำนวนข้อมูลทั้งหมด</p>
+                <div class="mini-code">def __len__(self):
+    return len(self.img_labels)</div>
+            </div>
+
+            <div class="step-card __getitem__">
+                <h3><span class="step-number">3</span>__getitem__</h3>
+                <p style="color: #94a3b8;">โหลดและคืนข้อมูลที่ index</p>
+                <div class="mini-code">def __getitem__(self, idx):
+    img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+    image = decode_image(img_path)      # อ่านรูป
+    label = self.img_labels.iloc[idx, 1] # อ่าน label
+    
+    if self.transform:
+        image = self.transform(image)
+    
+    return image, label</div>
+            </div>
+
+            <div class="highlight-box">
+                <h4 style="color: #fbbf24; margin-top: 0;">📁 โครงสร้างไฟล์:</h4>
+                <pre style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: #cbd5e1;">my_dataset/
+├── img_dir/
+│   ├── tshirt1.jpg
+│   ├── tshirt2.jpg
+│   └── ...
+└── annotations.csv
+tshirt1.jpg, 0
+tshirt2.jpg, 0
+...</pre>
+            </div>
+        </section>
+
+        <section id="dataloader" class="section">
+            <h2>🔄 DataLoader คืออะไร?</h2>
+            
+            <div class="highlight-box">
+                <p style="font-size: 1.1rem;">
+                    <strong style="color: #10b981;">DataLoader</strong> ช่วยจัดการ:
+                </p>
+                <ul style="margin-left: 2rem; color: #cbd5e1; line-height: 2.2;">
+                    <li>📦 <strong>แบ่ง Batch</strong> - จัดกลุ่มข้อมูลเป็น batch</li>
+                    <li>🔀 <strong>Shuffle</strong> - สุ่มข้อมูลทุก epoch</li>
+                    <li>⚡ <strong>Parallel</strong> - โหลดข้อมูลพร้อมกัน</li>
+                </ul>
+            </div>
+
+            <h3>Code:</h3>
+            <pre><code><span class="keyword">from</span> torch.utils.data <span class="keyword">import</span> DataLoader
+
+train_dataloader = <span class="keyword">DataLoader</span>(
+    training_data,      <span class="param-tag">dataset</span>
+    batch_size=<span class="number">64</span>,   <span class="param-tag">batch_size</span>
+    shuffle=<span class="keyword">True</span>,     <span class="param-tag">shuffle</span>
+    num_workers=<span class="number">2</span>      <span class="param-tag">num_workers</span>
+)</code></pre>
+
+            <h3>📦 ตัวอย่าง Batch:</h3>
+            <div class="batch-visual">
+                <div class="batch-group">
+                    <div style="color: #3b82f6; font-weight: bold; font-size: 1.1rem;">Batch 1</div>
+                    <div class="batch-grid">
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">0</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">5</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">2</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">8</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">1</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">9</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">3</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">6</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">4</div>
+                    </div>
+                    <small style="color: #64748b;">64 ภาพ</small>
+                </div>
+                <div class="batch-group">
+                    <div style="color: #10b981; font-weight: bold; font-size: 1.1rem;">Batch 2</div>
+                    <div class="batch-grid">
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">3</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">7</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">1</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">4</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">6</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">2</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">8</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">0</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #10b981, #047857);">5</div>
+                    </div>
+                    <small style="color: #64748b;">64 ภาพ</small>
+                </div>
+                <div class="batch-group">
+                    <div style="color: #8b5cf6; font-weight: bold; font-size: 1.1rem;">Batch 3</div>
+                    <div class="batch-grid">
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">5</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">0</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">6</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">3</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">9</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">1</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">7</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">2</div>
+                        <div class="batch-item" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">4</div>
+                    </div>
+                    <small style="color: #64748b;">64 ภาพ</small>
+                </div>
+            </div>
+            <p style="text-align: center; color: #64748b; margin-top: 1rem;">
+                ← 60,000 ภาพ ÷ 64 ภาพต่อ batch = 938 batches →
+            </p>
+        </section>
+
+        <section id="iterate" class="section">
+            <h2>🔁 การ Iterate ผ่าน DataLoader</h2>
+            
+            <pre><code><span class="comment"># ดึง batch แรก</span>
+train_features, train_labels = next(iter(train_dataloader))
+
+<span class="keyword">print</span>(f<span class="string">"Features: {train_features.shape}"</span>)  <span class="comment"># [64, 1, 28, 28]</span>
+<span class="keyword">print</span>(f<span class="string">"Labels: {train_labels.shape}"</span>)     <span class="comment"># [64]</span>
+
+<span class="comment"># วน loop ทั้งหมด</span>
+<span class="keyword">for</span> batch_features, batch_labels <span class="keyword">in</span> train_dataloader:
+    <span class="comment"># เทรนโมเดล</span>
+    ...</code></pre>
+
+            <div class="highlight-box">
+                <h4 style="color: #fbbf24; margin-top: 0;">📊 ผลลัพธ์:</h4>
+                <p>Features: <code style="color: #7dd3fc;">torch.Size([64, 1, 28, 28])</code></p>
+                <p style="color: #94a3b8;">→ 64 รูป, 1 channel (grayscale), 28×28 pixels</p>
+                <p>Labels: <code style="color: #7dd3fc;">torch.Size([64])</code></p>
+                <p style="color: #94a3b8;">→ 64 labels ตรงกับ 64 รูป</p>
+            </div>
+        </section>
+
+        <section id="summary" class="section">
+            <h2>📝 สรุป</h2>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>ส่วน</th>
+                    <th>หน้าที่</th>
+                </tr>
+                <tr>
+                    <td>Dataset</td>
+                    <td>เก็บข้อมูลและ labels</td>
+                </tr>
+                <tr>
+                    <td>DataLoader</td>
+                    <td>แบ่ง batch, shuffle, โหลดข้อมูล</td>
+                </tr>
+            </table>
+
+            <div style="text-align: center; margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="index.html" class="nav-btn">
+                    🔙 Tensor
+                </a>
+                <a href="transforms.html" class="nav-btn green">
+                    Transforms ➡️
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>สร้างด้วย ❤️ จาก <a href="https://pytorch.org">PyTorch</a> Tutorial</p>
+    </footer>
+
+    <script src="js/tooltip.js"></script>
+</body>
+</html>

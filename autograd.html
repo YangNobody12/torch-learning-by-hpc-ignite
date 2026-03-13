@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automatic Differentiation - PyTorch Tutorial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .graph-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.9), rgba(10, 20, 35, 0.95));
+            border-radius: 20px;
+            margin: 2rem 0;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        .graph-node {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid;
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 100px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        .graph-node:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        }
+        .graph-node.leaf { border-color: #f59e0b; }
+        .graph-node.operation { border-color: #8b5cf6; }
+        .graph-node.root { border-color: #10b981; }
+        .graph-arrow {
+            color: #64748b;
+            font-size: 1.5rem;
+            animation: bounce 1.5s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(8px); }
+        }
+        .layer-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .layer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .layer-card h3 {
+            color: #a78bfa;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .code-block .keyword { color: #c084fc; }
+        .code-block .class { color: #60a5fa; }
+        .code-block .function { color: #34d399; }
+        .code-block .number { color: #f472b6; }
+        .code-block .comment { color: #64748b; }
+        .demo-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+        .gradient-flow {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            border-radius: 12px;
+            margin: 1rem 0;
+        }
+        .gradient-arrow {
+            font-size: 2rem;
+            color: #10b981;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.1); }
+        }
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .compare-box {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .compare-box h4 {
+            color: #fbbf24;
+            margin-bottom: 1rem;
+        }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .breadcrumb a {
+            color: #a78bfa;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .section-title {
+            color: #e2e8f0;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin: 2rem 0;
+            gap: 1rem;
+        }
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(99, 102, 241, 0.2));
+            border: 1px solid rgba(139, 92, 246, 0.4);
+            border-radius: 12px;
+            color: #c4b5fd;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .nav-btn:hover {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.4), rgba(99, 102, 241, 0.4));
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🔄 Automatic Differentiation</h1>
+            <p class="subtitle">เรียนรู้การคำนวณ Gradient อัตโนมัติด้วย torch.autograd</p>
+        </header>
+
+        <div class="breadcrumb">
+            <a href="index.html">Tensors</a> →
+            <a href="data.html">Datasets</a> →
+            <a href="transforms.html">Transforms</a> →
+            <a href="model.html">Build Model</a> →
+            <span>Autograd</span> →
+            <a href="optimization.html">Optimization</a>
+        </div>
+
+        <nav class="page-nav">
+            <a href="model.html" class="nav-link">◀ ก่อนหน้า: Build Model</a>
+            <a href="optimization.html" class="nav-link">ถัดไป: Optimization ▶</a>
+        </nav>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🎯</span>
+                Autograd คืออะไร?
+            </h2>
+            <p>เมื่อ train neural networks สิ่งที่ใช้บ่อยที่สุดคือ <span class="keyword" data-tooltip="Backpropagation is an algorithm that calculates gradients of loss with respect to network parameters by moving backwards through the network.">back propagation</span> ใน algorithm นี้ parameters (weights ของ model) จะถูกปรับตาม <span class="keyword" data-tooltip="Gradient indicates the direction and rate of fastest increase of the loss function. We move in the opposite direction to minimize loss.">gradient</span> ของ loss function</p>
+            
+            <p>PyTorch มี built-in differentiation engine ชื่อ <span class="keyword" data-tooltip="torch.autograd is PyTorch's automatic differentiation engine that computes gradients automatically for any computational graph.">torch.autograd</span> ที่ support การคำนวณ gradient โดยอัตโนมัติ</p>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">📊</span>
+                Computational Graph
+            </h2>
+            <p>เมื่อเราสร้าง tensors ที่มี <span class="keyword" data-tooltip="requires_grad=True enables automatic gradient computation for this tensor. Set this for tensors that need gradient tracking.">requires_grad=True</span> PyTorch จะสร้าง computational graph ขึ้นมา</p>
+
+            <div class="graph-container">
+                <div style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap; justify-content: center;">
+                    <div class="graph-node leaf">
+                        <div>x (input)</div>
+                        <small>requires_grad=True</small>
+                    </div>
+                    <div class="graph-node leaf">
+                        <div>w (weights)</div>
+                        <small>requires_grad=True</small>
+                    </div>
+                    <div class="graph-node leaf">
+                        <div>b (bias)</div>
+                        <small>requires_grad=True</small>
+                    </div>
+                </div>
+                <div class="graph-arrow">↓</div>
+                <div class="graph-node operation">
+                    <div>MatMul + Add</div>
+                    <small>Forward Pass</small>
+                </div>
+                <div class="graph-arrow">↓</div>
+                <div class="graph-node operation">
+                    <div>Loss Function</div>
+                    <small>Cross Entropy</small>
+                </div>
+                <div class="graph-arrow">↓</div>
+                <div class="graph-node root">
+                    <div>loss</div>
+                    <small>Backward Pass → Gradients</small>
+                </div>
+            </div>
+
+            <div class="code-block">
+<span class="comment"># สร้าง tensors พร้อม requires_grad</span>
+x = <span class="function">torch.ones</span>(<span class="number">5</span>)  <span class="comment"># input</span>
+y = <span class="function">torch.zeros</span>(<span class="number">3</span>)  <span class="comment"># expected output</span>
+w = <span class="function">torch.randn</span>(<span class="number">5</span>, <span class="number">3</span>, requires_grad=<span class="keyword">True</span>)
+b = <span class="function">torch.randn</span>(<span class="number">3</span>, requires_grad=<span class="keyword">True</span>)
+
+<span class="comment"># Forward pass</span>
+z = <span class="function">torch.matmul</span>(x, w) + b
+loss = <span class="function">torch.nn.functional.binary_cross_entropy_with_logits</span>(z, y)
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">📐</span>
+                การคำนวณ Gradients
+            </h2>
+            <p>เรียก <span class="keyword" data-tooltip="backward() computes the gradient of current tensor with respect to leaf tensors. This triggers backpropagation through the computational graph.">loss.backward()</span> เพื่อคำนวณ gradient แล้วดูค่าได้จาก <span class="keyword" data-tooltip=".grad returns the gradient of this tensor with respect to the leaf tensors that created it.">.grad</span></p>
+
+            <div class="gradient-flow">
+                <div class="graph-node root" style="border-color: #ef4444;">
+                    <div>loss.backward()</div>
+                </div>
+                <div class="gradient-arrow">→</div>
+                <div class="graph-node leaf">
+                    <div>w.grad</div>
+                </div>
+                <div class="gradient-arrow">→</div>
+                <div class="graph-node leaf">
+                    <div>b.grad</div>
+                </div>
+            </div>
+
+            <div class="code-block">
+<span class="comment"># คำนวณ gradient</span>
+loss.<span class="function">backward</span>()
+
+<span class="function">print</span>(w.grad)
+<span class="comment"># tensor([[0.1224, 0.0324, 0.2692], ...])</span>
+
+<span class="function">print</span>(b.grad)
+<span class="comment"># tensor([0.1224, 0.0324, 0.2692])</span>
+            </div>
+
+            <div class="layer-card" style="border-left: 4px solid #f59e0b;">
+                <h3>⚠️ ข้อควรรู้</h3>
+                <ul>
+                    <li>เราสามารถได้ <span class="keyword">grad</span> เฉพาะ leaf nodes ที่มี <span class="keyword">requires_grad=True</span></li>
+                    <li>เราสามารถเรียก <span class="keyword">backward()</span> ได้ครั้งเดียวเท่านั้น ถ้าต้องการเรียกอีกต้องใช้ <span class="keyword">retain_graph=True</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🚫</span>
+                การปิด Gradient Tracking
+            </h2>
+            <p>บางครั้งเราไม่ต้องการ track gradient เช่นตอนทำ inference (โมเดล train แล้ว)</p>
+
+            <div class="comparison-grid">
+                <div class="compare-box">
+                    <h4>วิธีที่ 1: torch.no_grad()</h4>
+                    <div class="demo-box" style="margin: 0;">
+<span class="keyword">with</span> <span class="function">torch.no_grad</span>():
+    z = <span class="function">torch.matmul</span>(x, w) + b
+<span class="function">print</span>(z.requires_grad)
+<span class="comment"># False</span>
+                    </div>
+                </div>
+                <div class="compare-box">
+                    <h4>วิธีที่ 2: detach()</h4>
+                    <div class="demo-box" style="margin: 0;">
+z = <span class="function">torch.matmul</span>(x, w) + b
+z_det = z.<span class="function">detach</span>()
+<span class="function">print</span>(z_det.requires_grad)
+<span class="comment"># False</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="layer-card" style="border-left: 4px solid #10b981;">
+                <h3>💡 ทำไมต้องปิด Gradient Tracking?</h3>
+                <ul>
+                    <li><strong>Speed:</strong> คำนวณเร็วขึ้นเพราะไม่ต้องเก็บ computation graph</li>
+                    <li><strong>Freeze:</strong> ใช้ freeze parameters บางตัว</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🔁</span>
+                Gradient Accumulation
+            </h2>
+            <p>PyTorch <strong>accumulates</strong> gradients - ค่า gradient จะถูกบวกเพิ่มเรื่อยๆ ถ้าเรียก backward หลายครั้ง</p>
+
+            <div class="code-block">
+<span class="comment"># เรียก backward ครั้งแรก</span>
+out.<span class="function">backward</span>(<span class="function">torch.ones_like</span>(out))
+<span class="function">print</span>(inp.grad)
+<span class="comment"># tensor([[4., 2., 2., ...]])  </span>
+
+<span class="comment"># เรียก backward ครั้งที่สอง (บวกเพิ่ม)</span>
+out.<span class="function">backward</span>(<span class="function">torch.ones_like</span>(out))
+<span class="function">print</span>(inp.grad)
+<span class="comment"># tensor([[8., 4., 4., ...]])  # บวกเพิ่มแล้ว!</span>
+
+<span class="comment"># ต้อง zero_grad ก่อนเรียกอีกครั้ง</span>
+inp.grad.<span class="function">zero_</span>()
+out.<span class="function">backward</span>(<span class="function">torch.ones_like</span>(out))
+<span class="function">print</span>(inp.grad)
+<span class="comment"># tensor([[4., 2., 2., ...]])  # เริ่มใหม่</span>
+            </div>
+        </div>
+
+        <nav class="page-nav">
+            <a href="model.html" class="nav-link">◀ ก่อนหน้า: Build Model</a>
+            <a href="optimization.html" class="nav-link">ถัดไป: Optimization ▶</a>
+        </nav>
+
+        <footer>
+            <p>PyTorch Tutorial - Learn the Basics</p>
+        </footer>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script src="js/tooltip.js"></script>
+    <script>
+        document.querySelectorAll('.keyword[data-tooltip]').forEach(el => {
+            el.addEventListener('mouseenter', showTooltip);
+            el.addEventListener('mouseleave', hideTooltip);
+        });
+    </script>
+</body>
+</html>

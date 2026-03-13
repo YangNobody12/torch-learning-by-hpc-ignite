@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimizing Model Parameters - PyTorch Tutorial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .training-loop {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, rgba(20, 30, 48, 0.9), rgba(10, 20, 35, 0.95));
+            border-radius: 20px;
+            margin: 2rem 0;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
+        .loop-step {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+        }
+        .loop-step:hover {
+            transform: translateX(10px);
+            background: rgba(0, 0, 0, 0.4);
+        }
+        .step-number {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .hyperparam-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .hyperparam-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        .hyperparam-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .hyperparam-card h3 {
+            color: #fbbf24;
+            margin-bottom: 0.5rem;
+        }
+        .hyperparam-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #10b981;
+            font-family: 'Fira Code', monospace;
+        }
+        .layer-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .layer-card h3 {
+            color: #a78bfa;
+            margin-bottom: 1rem;
+        }
+        .code-block {
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+        .code-block .keyword { color: #c084fc; }
+        .code-block .class { color: #60a5fa; }
+        .code-block .function { color: #34d399; }
+        .code-block .number { color: #f472b6; }
+        .code-block .comment { color: #64748b; }
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .breadcrumb a {
+            color: #a78bfa;
+            text-decoration: none;
+        }
+        .breadcrumb a:hover {
+            text-decoration: underline;
+        }
+        .section-title {
+            color: #e2e8f0;
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .section-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .epoch-progress {
+            margin: 2rem 0;
+        }
+        .epoch-bar {
+            height: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+        .epoch-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981, #34d399, #10b981);
+            border-radius: 15px;
+            animation: progress 2s ease-in-out infinite;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        @keyframes progress {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        .loss-display {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .loss-box {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 1rem;
+            text-align: center;
+        }
+        .loss-label {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+        .loss-value {
+            color: #10b981;
+            font-size: 1.5rem;
+            font-weight: bold;
+            font-family: 'Fira Code', monospace;
+        }
+        .accuracy-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚙️ Optimizing Model Parameters</h1>
+            <p class="subtitle">เรียนรู้การ train model ด้วย Gradient Descent</p>
+        </header>
+
+        <div class="breadcrumb">
+            <a href="index.html">Tensors</a> →
+            <a href="data.html">Datasets</a> →
+            <a href="transforms.html">Transforms</a> →
+            <a href="model.html">Build Model</a> →
+            <a href="autograd.html">Autograd</a> →
+            <span>Optimization</span>
+        </div>
+
+        <nav class="page-nav">
+            <a href="autograd.html" class="nav-link">◀ ก่อนหน้า: Autograd</a>
+        </nav>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🎯</span>
+                กระบวนการ Train Model
+            </h2>
+            <p>การ train model เป็น iterative process ในแต่ละ iteration:</p>
+            <ol style="margin-left: 2rem; line-height: 2;">
+                <li>Model ทำนายผลลัพธ์</li>
+                <li>คำนวณ <span class="keyword" data-tooltip="Loss measures how wrong the model's prediction is. We want to minimize this value during training.">loss</span> (ความผิดพลาด)</li>
+                <li>คำนวณ <span class="keyword" data-tooltip="Gradients tell us how to change parameters to reduce loss. We move in the opposite direction of gradients.">gradients</span> ย้อนกลับ</li>
+                <li>ปรับ parameters ด้วย <span class="keyword" data-tooltip="Optimization algorithms update model parameters based on gradients to minimize loss.">optimization</span></li>
+            </ol>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🔧</span>
+                Hyperparameters
+            </h2>
+            <p>Hyperparameters คือ parameters ที่เรากำหนดเองเพื่อควบคุมการ train</p>
+
+            <div class="hyperparam-grid">
+                <div class="hyperparam-card">
+                    <h3>📅 Epochs</h3>
+                    <div class="hyperparam-value">5</div>
+                    <p>จำนวนรอบที่ loop ผ่าน dataset ทั้งหมด</p>
+                </div>
+                <div class="hyperparam-card">
+                    <h3>📦 Batch Size</h3>
+                    <div class="hyperparam-value">64</div>
+                    <p>จำนวน samples ก่อนอัพเดท parameters</p>
+                </div>
+                <div class="hyperparam-card">
+                    <h3>📈 Learning Rate</h3>
+                    <div class="hyperparam-value">1e-3</div>
+                    <p>ขนาดก้าวในการปรับ parameters</p>
+                </div>
+            </div>
+
+            <div class="code-block">
+learning_rate = <span class="number">1e-3</span>
+batch_size = <span class="number">64</span>
+epochs = <span class="number">5</span>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">📝</span>
+                Loss Function
+            </h2>
+            <p><span class="keyword" data-tooltip="Loss function measures the difference between predicted and actual values. We minimize this during training.">Loss function</span> วัดความผิดพลาดระหว่าง prediction กับ target</p>
+
+            <div class="layer-card">
+                <h3>Loss Functions ที่ใช้บ่อย</h3>
+                <table class="comparison-table">
+                    <tr>
+                        <th>Loss Function</th>
+                        <th>ใช้กับ</th>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">nn.MSELoss</span></td>
+                        <td>Regression (ค่าต่อเนื่อง)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">nn.NLLLoss</span></td>
+                        <td>Classification (Negative Log Likelihood)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">nn.CrossEntropyLoss</span></td>
+                        <td>Classification (รวม LogSoftmax + NLLLoss)</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="code-block">
+<span class="comment"># สร้าง loss function</span>
+loss_fn = <span class="class">nn.CrossEntropyLoss</span>()
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🚀</span>
+                Optimizer
+            </h2>
+            <p><span class="keyword" data-tooltip="Optimizer updates model parameters based on gradients to minimize loss. Common algorithms: SGD, Adam, RMSprop.">Optimizer</span> ปรับ parameters ตาม gradients</p>
+
+            <div class="code-block">
+optimizer = <span class="class">torch.optim.SGD</span>(model.parameters(), lr=learning_rate)
+            </div>
+
+            <div class="layer-card">
+                <h3>Optimizers ที่นิยม</h3>
+                <ul>
+                    <li><strong>SGD</strong> - Stochastic Gradient Descent</li>
+                    <li><strong>Adam</strong> - Adaptive Moment Estimation (นิยมมาก)</li>
+                    <li><strong>RMSprop</strong> - Root Mean Square Propagation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🔄</span>
+                Training Loop
+            </h2>
+            <p>แต่ละ epoch ประกอบด้วย:</p>
+
+            <div class="training-loop">
+                <div class="loop-step">
+                    <div class="step-number">1</div>
+                    <div>
+                        <strong>Forward Pass</strong> - ทำนายผลลัพธ์
+                        <div class="demo-box" style="margin: 0.5rem 0;">
+pred = model(X)
+loss = loss_fn(pred, y)
+                        </div>
+                    </div>
+                </div>
+                <div class="loop-step">
+                    <div class="step-number">2</div>
+                    <div>
+                        <strong>Zero Grad</strong> - ล้าง gradients เก่า
+                        <div class="demo-box" style="margin: 0.5rem 0;">
+optimizer.zero_grad()
+                        </div>
+                    </div>
+                </div>
+                <div class="loop-step">
+                    <div class="step-number">3</div>
+                    <div>
+                        <strong>Backward Pass</strong> - คำนวณ gradients ใหม่
+                        <div class="demo-box" style="margin: 0.5rem 0;">
+loss.backward()
+                        </div>
+                    </div>
+                </div>
+                <div class="loop-step">
+                    <div class="step-number">4</div>
+                    <div>
+                        <strong>Update Parameters</strong> - ปรับ parameters
+                        <div class="demo-box" style="margin: 0.5rem 0;">
+optimizer.step()
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">📊</span>
+                Training Results
+            </h2>
+            <p>ผลลัพธ์หลังจาก train 5 epochs:</p>
+
+            <div class="epoch-progress">
+                <div class="epoch-bar">
+                    <div class="epoch-fill" style="width: 50%;">Epoch 5/5</div>
+                </div>
+            </div>
+
+            <div class="loss-display">
+                <div class="loss-box">
+                    <div class="loss-label">Test Accuracy</div>
+                    <div class="loss-value">65.3%</div>
+                </div>
+                <div class="loss-box">
+                    <div class="loss-label">Avg Loss</div>
+                    <div class="loss-value">1.07</div>
+                </div>
+            </div>
+
+            <div class="layer-card" style="border-left: 4px solid #10b981;">
+                <h3>📈 ผลลัพธ์แต่ละ Epoch</h3>
+                <table class="comparison-table" style="margin: 0;">
+                    <tr>
+                        <th>Epoch</th>
+                        <th>Accuracy</th>
+                        <th>Avg Loss</th>
+                    </tr>
+                    <tr>
+                        <td>1</td>
+                        <td>45.8%</td>
+                        <td>2.147</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>61.1%</td>
+                        <td>1.858</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>63.0%</td>
+                        <td>1.490</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>64.0%</td>
+                        <td>1.233</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>65.3%</td>
+                        <td>1.073</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2 class="section-title">
+                <span class="section-icon">💻</span>
+                Code สมบูรณ์
+            </h2>
+
+            <div class="code-block">
+<span class="keyword">def</span> <span class="function">train_loop</span>(dataloader, model, loss_fn, optimizer):
+    size = <span class="function">len</span>(dataloader.dataset)
+    model.<span class="function">train</span>()
+    
+    <span class="keyword">for</span> batch, (X, y) <span class="keyword">in</span> <span class="function">enumerate</span>(dataloader):
+        pred = <span class="function">model</span>(X)
+        loss = <span class="function">loss_fn</span>(pred, y)
+        
+        loss.<span class="function">backward</span>()
+        optimizer.<span class="function">step</span>()
+        optimizer.<span class="function">zero_grad</span>()
+
+<span class="keyword">def</span> <span class="function">test_loop</span>(dataloader, model, loss_fn):
+    model.<span class="function">eval</span>()
+    size = <span class="function">len</span>(dataloader.dataset)
+    test_loss, correct = <span class="number">0</span>, <span class="number">0</span>
+
+    <span class="keyword">with</span> <span class="function">torch.no_grad</span>():
+        <span class="keyword">for</span> X, y <span class="keyword">in</span> dataloader:
+            pred = <span class="function">model</span>(X)
+            test_loss += <span class="function">loss_fn</span>(pred, y).<span class="function">item</span>()
+            correct += (pred.argmax(<span class="number">1</span>) == y).<span class="function">type</span>(torch.float).<span class="function">sum</span>().<span class="function">item</span>()
+
+    test_loss /= <span class="function">len</span>(dataloader)
+    correct /= size
+    <span class="function">print</span>(f<span class="string">"Accuracy: {(100*correct):>0.1f}%"</span>)
+
+<span class="comment"># Train!</span>
+epochs = <span class="number">10</span>
+<span class="keyword">for</span> t <span class="keyword">in</span> <span class="function">range</span>(epochs):
+    <span class="function">print</span>(f<span class="string">"Epoch {t+1}"</span>)
+    <span class="function">train_loop</span>(train_dataloader, model, loss_fn, optimizer)
+    <span class="function">test_loop</span>(test_dataloader, model, loss_fn)
+
+<span class="function">print</span>(<span class="string">"Done!"</span>)
+            </div>
+        </div>
+
+        <nav class="page-nav">
+            <a href="autograd.html" class="nav-link">◀ ก่อนหน้า: Autograd</a>
+        </nav>
+
+        <footer>
+            <p>PyTorch Tutorial - Learn the Basics</p>
+        </footer>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script src="js/tooltip.js"></script>
+    <script>
+        document.querySelectorAll('.keyword[data-tooltip]').forEach(el => {
+            el.addEventListener('mouseenter', showTooltip);
+            el.addEventListener('mouseleave', hideTooltip);
+        });
+    </script>
+</body>
+</html>

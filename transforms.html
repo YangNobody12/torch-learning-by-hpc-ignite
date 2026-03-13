@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transforms - PyTorch Tutorial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .section {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+        .transform-flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        .transform-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid;
+            border-radius: 16px;
+            padding: 2rem 2.5rem;
+            text-align: center;
+            min-width: 150px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .transform-box:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+        }
+        .transform-box.input { border-color: #f59e0b; }
+        .transform-box.process { border-color: #10b981; }
+        .transform-box.output { border-color: #3b82f6; }
+        .arrow {
+            font-size: 2.5rem;
+            color: #64748b;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        .transform-card {
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border-left: 5px solid;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .transform-card:hover {
+            transform: translateX(10px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+        .transform-card.totensor { border-color: #3b82f6; }
+        .transform-card.normalize { border-color: #10b981; }
+        .transform-card.resize { border-color: #f59e0b; }
+        .transform-card.lambda { border-color: #8b5cf6; }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .comparison-table th, .comparison-table td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .comparison-table th {
+            background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+            color: #c4b5fd;
+            font-weight: 600;
+        }
+        .comparison-table tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .comparison-table td:first-child {
+            color: #fbbf24;
+            font-weight: 600;
+            font-family: 'Fira Code', monospace;
+        }
+        .before-after {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2rem 0;
+        }
+        .box-card {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        .box-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+        }
+        .pixel-grid {
+            display: grid;
+            gap: 3px;
+            margin: 1.5rem auto;
+            width: fit-content;
+        }
+        .pixel {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .pixel:hover { transform: scale(1.2); }
+        .pixel-dark { background: #1e293b; }
+        .pixel-light { background: #94a3b8; }
+        .pixel-white { background: #ffffff; }
+        .pixel-highlight { background: #3b82f6; }
+        .one-hot-visual {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        .one-hot-item {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        .one-hot-item:hover { transform: scale(1.15); }
+        .lambda-code {
+            background: linear-gradient(135deg, #1e1e3f, #0f0f23);
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+        .compose-step {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+        }
+        .compose-box {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            border: 2px solid;
+            min-width: 120px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        .compose-box:hover { transform: scale(1.05); }
+        .compose-box:nth-child(1) { border-color: #f59e0b; }
+        .compose-box:nth-child(3) { border-color: #10b981; }
+        .compose-box:nth-child(5) { border-color: #3b82f6; }
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(251, 191, 36, 0.05));
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+        .info-box {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.05));
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+        .nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, #EE4C2C, #FF6B35);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 16px rgba(238, 76, 44, 0.3);
+        }
+        .nav-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(238, 76, 44, 0.4);
+        }
+        .nav-btn.green {
+            background: linear-gradient(135deg, #10b981, #059669);
+            box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+        }
+        .nav-btn.green:hover {
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+        }
+        .nav-btn.blue {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+        }
+        .nav-btn.blue:hover {
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="hero-icon">🔥</div>
+        <h1>Transforms</h1>
+        <p>เรียนรู้การแปลงข้อมูลใน PyTorch</p>
+    </header>
+
+    <div class="container">
+        <nav class="nav">
+            <a href="index.html">Tensor</a>
+            <a href="data.html">Dataset</a>
+            <a href="#" class="active">Transforms</a>
+        </nav>
+
+        <section id="intro" class="section">
+            <h2>🎯 Transforms คืออะไร?</h2>
+            
+            <div class="highlight-box">
+                <p style="font-size: 1.2rem; color: #fbbf24; margin: 0;">
+                    💡 แปลงข้อมูลดิบให้เหมาะสมสำหรับการเทรนโมเดล
+                </p>
+            </div>
+
+            <h3>📊 การไหลของข้อมูล</h3>
+            <div class="transform-flow">
+                <div class="transform-box input">
+                    <div style="font-size: 3rem;">📷</div>
+                    <h4 style="color: #f59e0b; margin: 0.5rem 0;">ข้อมูลดิบ</h4>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">PIL Image</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="transform-box process">
+                    <div style="font-size: 3rem;">⚙️</div>
+                    <h4 style="color: #10b981; margin: 0.5rem 0;">Transform</h4>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">แปลงข้อมูล</p>
+                </div>
+                <div class="arrow">→</div>
+                <div class="transform-box output">
+                    <div style="font-size: 3rem;">🔢</div>
+                    <h4 style="color: #3b82f6; margin: 0.5rem 0;">Tensor</h4>
+                    <p style="color: #94a3b8; font-size: 0.9rem; margin: 0;">พร้อมเทรน</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="why" class="section">
+            <h2>🤔 ทำไมต้องใช้ Transforms?</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div style="font-size: 2.5rem;">📐</div>
+                    <h4>ปรับขนาด</h4>
+                    <p>Rescale ภาพให้มีขนาดเท่ากัน</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size: 2.5rem;">🎨</div>
+                    <h4>Normalize</h4>
+                    <p>ปรับค่าสีให้อยู่ในช่วงที่เหมาะสม</p>
+                </div>
+                <div class="feature-card">
+                    <div style="font-size: 2.5rem;">🔄</div>
+                    <h4>Data Augmentation</h4>
+                    <p>เพิ่มความหลากหลายของข้อมูล</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="totensor" class="section">
+            <h2>📥 ToTensor - แปลงเป็น Tensor</h2>
+            
+            <p>แปลง PIL Image หรือ NumPy array เป็น PyTorch Tensor และ scale ค่า pixel เป็น [0, 1]</p>
+
+            <div class="before-after">
+                <div class="box-card">
+                    <h4 style="color: #f59e0b; margin: 0 0 1rem 0;">📷 ก่อน (PIL Image)</h4>
+                    <div class="pixel-grid" style="grid-template-columns: repeat(5, 24px);">
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-dark"></div>
+                    </div>
+                    <p style="color: #94a3b8; margin: 0;">ค่า 0-255</p>
+                </div>
+                <div class="box-card">
+                    <h4 style="color: #3b82f6; margin: 0 0 1rem 0;">🔢 หลัง (Tensor)</h4>
+                    <div class="pixel-grid" style="grid-template-columns: repeat(5, 24px);">
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-dark"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-white"></div>
+                        <div class="pixel pixel-light"></div>
+                        <div class="pixel pixel-dark"></div>
+                    </div>
+                    <p style="color: #94a3b8; margin: 0;">ค่า 0.0-1.0</p>
+                </div>
+            </div>
+
+            <h3>Code:</h3>
+            <pre><code><span class="keyword">from</span> torchvision.transforms <span class="keyword">import</span> ToTensor
+
+transform = ToTensor()
+
+<span class="comment"># แปลง PIL Image เป็น Tensor</span>
+img_tensor = transform(img_pil)</code></pre>
+        </section>
+
+        <section id="common" class="section">
+            <h2>🔧 Transforms ที่ใช้บ่อย</h2>
+            
+            <table class="comparison-table">
+                <tr>
+                    <th>Transform</th>
+                    <th>หน้าที่</th>
+                    <th>ตัวอย่าง</th>
+                </tr>
+                <tr>
+                    <td><span class="keyword">ToTensor()</span></td>
+                    <td>แปลงเป็น Tensor [0,1]</td>
+                    <td>PIL → Tensor</td>
+                </tr>
+                <tr>
+                    <td><span class="keyword">Normalize()</span></td>
+                    <td>Normalize ค่า</td>
+                    <td>mean, std</td>
+                </tr>
+                <tr>
+                    <td><span class="keyword">Resize()</span></td>
+                    <td>ปรับขนาด</td>
+                    <td>(H, W) → (size)</td>
+                </tr>
+                <tr>
+                    <td><span class="keyword">CenterCrop()</span></td>
+                    <td>ตัดกลาง</td>
+                    <td>ตัดตรงกลาง</td>
+                </tr>
+                <tr>
+                    <td><span class="keyword">RandomHorizontalFlip()</span></td>
+                    <td>พลิกซ้าย-ขวา</td>
+                    <td>Data Augmentation</td>
+                </tr>
+                <tr>
+                    <td><span class="keyword">RandomRotation()</span></td>
+                    <td>หมุนสุ่ม</td>
+                    <td>Data Augmentation</td>
+                </tr>
+                <tr>
+                    <td><span class="keyword">Lambda()</span></td>
+                    <td>Function กำหนดเอง</td>
+                    <td>เขียนเอง</td>
+                </tr>
+            </table>
+        </section>
+
+        <section id="lambda" class="section">
+            <h2>⚡ Lambda Transform - แปลงแบบกำหนดเอง</h2>
+            
+            <p>ใช้ Lambda สำหรับการแปลงที่กำหนดเอง เช่น One-Hot Encoding</p>
+
+            <h3>ตัวอย่าง: One-Hot Encoding</h3>
+            
+            <div class="before-after">
+                <div class="box-card">
+                    <h4 style="color: #f59e0b; margin: 0 0 1rem 0;">🏷️ Label ก่อน (Integer)</h4>
+                    <div style="font-size: 4rem; font-weight: bold; color: #f59e0b; margin: 1rem 0;">3</div>
+                    <p style="color: #94a3b8;">Dress</p>
+                </div>
+                <div class="box-card">
+                    <h4 style="color: #10b981; margin: 0 0 1rem 0;">🔢 หลัง (One-Hot)</h4>
+                    <div class="one-hot-visual">
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: linear-gradient(135deg, #10b981, #047857); color: white;">1</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                        <div class="one-hot-item" style="background: #1e293b; color: #64748b;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Code:</h3>
+            <pre><code><span class="keyword">from</span> torchvision.transforms <span class="keyword">import</span> Lambda
+
+<span class="comment"># แปลง label เป็น one-hot</span>
+target_transform = Lambda(<span class="keyword">lambda</span> y: torch.zeros(
+    10, dtype=torch.float).scatter_(
+        0, torch.tensor(y), value=1
+    ))</code></pre>
+        </section>
+
+        <section id="compose" class="section">
+            <h2>🔗 Compose - รวมหลาย Transforms</h2>
+            
+            <p>ใช้ <code style="color: #c586c0;">Compose</code> รวม transforms หลายตัวเข้าด้วยกัน</p>
+
+            <pre><code><span class="keyword">from</span> torchvision.transforms <span class="keyword">import</span> Compose, Resize, ToTensor, Normalize
+
+<span class="comment"># รวม transforms หลายตัว</span>
+transform = Compose([
+    Resize((224, 224)),    <span class="comment"># 1. ปรับขนาด</span>
+    ToTensor(),             <span class="comment"># 2. แปลงเป็น Tensor</span>
+    Normalize(              <span class="comment"># 3. Normalize</span>
+        mean=[0.485, 0.456, 0.406],
+        std=[0.229, 0.224, 0.225]
+    )
+])</code></pre>
+
+            <div class="compose-step">
+                <div class="compose-box">
+                    <div style="font-size: 2rem;">📷</div>
+                    <p style="color: #f59e0b; margin: 0.5rem 0 0 0;">Resize</p>
+                </div>
+                <div style="color: #64748b; font-size: 1.5rem;">→</div>
+                <div class="compose-box">
+                    <div style="font-size: 2rem;">🔢</div>
+                    <p style="color: #10b981; margin: 0.5rem 0 0 0;">ToTensor</p>
+                </div>
+                <div style="color: #64748b; font-size: 1.5rem;">→</div>
+                <div class="compose-box">
+                    <div style="font-size: 2rem;">📊</div>
+                    <p style="color: #3b82f6; margin: 0.5rem 0 0 0;">Normalize</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="full-example" class="section">
+            <h2>📝 ตัวอย่างเต็ม</h2>
+            
+            <pre><code><span class="keyword">import</span> torch
+<span class="keyword">from</span> torchvision <span class="keyword">import</span> datasets
+<span class="keyword">from</span> torchvision.transforms <span class="keyword">import</span> ToTensor, Lambda, Compose
+
+<span class="comment"># กำหนด transforms</span>
+transform = Compose([
+    ToTensor(),
+])
+
+target_transform = Lambda(<span class="keyword">lambda</span> y: torch.zeros(
+    10, dtype=torch.float
+).scatter_(0, torch.tensor(y), value=1))
+
+<span class="comment"># ใช้กับ Dataset</span>
+training_data = datasets.FashionMNIST(
+    root=<span class="string">"data"</span>,
+    train=<span class="keyword">True</span>,
+    download=<span class="keyword">True</span>,
+    transform=transform,
+    target_transform=target_transform
+)</code></pre>
+        </section>
+
+        <section id="summary" class="section">
+            <h2>📝 สรุป</h2>
+            
+            <div class="info-box">
+                <table class="comparison-table" style="margin: 0;">
+                    <tr>
+                        <th>พารามิเตอร์</th>
+                        <th>หน้าที่</th>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">transform</span></td>
+                        <td>แปลงข้อมูล input (features)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="keyword">target_transform</span></td>
+                        <td>แปลง label</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div style="text-align: center; margin-top: 2rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="data.html" class="nav-btn blue">
+                    🔙 Dataset
+                </a>
+                <a href="model.html" class="nav-btn">
+                    ถัดไป: Build Model 🔜
+                </a>
+                <a href="index.html" class="nav-btn">
+                    🏠 Tensor
+                </a>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>สร้างด้วย ❤️ จาก <a href="https://pytorch.org">PyTorch</a> Tutorial</p>
+    </footer>
+
+    <script src="js/tooltip.js"></script>
+</body>
+</html>
