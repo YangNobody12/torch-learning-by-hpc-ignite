@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Save & Load - การบันทึกและโหลดโมเดล</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Sarabun:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        pytorch: {
+                            red: '#EE4C2C',
+                            dark: '#1e1e1e',
+                            light: '#f8f9fa',
+                            code: '#282c34'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; }
+        .code-block {
+            border-left: 4px solid #EE4C2C;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .code-block.has-output {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid #333;
+        }
+        .output-block {
+            background-color: #0a0a0a;
+            border-left: 4px solid #4B5563;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            color: #9CA3AF;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+        .output-label { color: #6B7280; font-size: 0.75rem; margin-bottom: 0.5rem; user-select: none; letter-spacing: 0.05em; }
+        
+        .prose h1, .prose h2, .prose h3 { color: #ffffff; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose h1 { font-size: 2.25rem; font-weight: 700; color: #EE4C2C; }
+        .prose h2 { font-size: 1.8rem; font-weight: 600; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+        .prose h3 { font-size: 1.4rem; font-weight: 600; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.7; color: #b3b3b3; font-size: 1.05rem; }
+        .prose a { color: #60a5fa; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .prose strong { color: #e5e7eb; }
+
+        /* Simulator Styles */
+        .anim-element {
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .file-icon {
+            animation: popIn 0.3s ease-out forwards;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            80% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #EE4C2C; }
+    </style>
+</head>
+<body class="antialiased selection:bg-pytorch-red selection:text-white flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-black/50 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- PyTorch Logo -->
+                
+                <h1 class="text-xl font-bold text-white font-sans tracking-wide">PyTorch<span class="text-gray-400 font-light"> Basics</span></h1>
+            </div>
+            <nav class="flex flex-wrap justify-end gap-1">
+                <a href="index.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">5W1H</a>
+                <a href="tensor.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Tensors</a>
+                <a href="datasets.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Datasets</a>
+                <a href="transforms.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Transforms</a>
+                <a href="buildmodel.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Build Model</a>
+                <a href="autograd.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Autograd</a>
+                <a href="optimization.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Optimization</a>
+                <a href="saveloadrun.html" class="text-sm font-medium text-pytorch-red bg-pytorch-red/10 px-3 py-2 rounded-md">Save/Load</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        
+        <!-- INTRO KEY CONCEPT BLOCK -->
+        <div class="bg-gradient-to-r from-gray-900 to-gray-800 border border-pytorch-red/30 rounded-2xl p-6 md:p-8 mb-12 shadow-lg relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-pytorch-red/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+            
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4 flex items-center">
+                <svg class="w-8 h-8 mr-3 text-pytorch-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                Key Concept: การบันทึกความจำของ AI
+            </h2>
+            <p class="text-gray-300 text-lg leading-relaxed mb-6 max-w-4xl">
+                การฝึกสอนโมเดล (Training) อาจใช้เวลาเป็นชั่วโมง หรือเป็นสัปดาห์! เมื่อเราได้โมเดลที่ฉลาดแล้ว เราคงไม่อยากเทรนใหม่ทุกครั้งที่เปิดคอมพิวเตอร์ 
+                <strong>เราจึงต้องบันทึก (Save) "ความจำ" ของมันลงฮาร์ดดิสก์</strong> เพื่อนำไปใช้ทำงานจริง (Deployment) หรือนำกลับมาเทรนต่อในภายหลัง
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-black/40 border border-green-900/50 p-5 rounded-xl border-l-4 border-l-green-500">
+                    <h3 class="text-xl font-bold text-green-400 mb-2">1. Save Weights (บันทึกแค่น้ำหนัก)</h3>
+                    <p class="text-gray-400 text-sm">
+                        เซฟเฉพาะตัวเลขพารามิเตอร์ (Weights & Biases) ที่เรียนรู้มาแล้ว คล้ายๆ กับการ <strong>"เซฟเฉพาะความรู้"</strong> <br>
+                        <em>ข้อดี: ไฟล์เล็ก แต่ตอนโหลดต้องมีโค้ดโครงสร้างโมเดลมารองรับด้วย</em>
+                    </p>
+                </div>
+                <div class="bg-black/40 border border-blue-900/50 p-5 rounded-xl border-l-4 border-l-blue-500">
+                    <h3 class="text-xl font-bold text-blue-400 mb-2">2. Save Entire Model (บันทึกทั้งก้อน)</h3>
+                    <p class="text-gray-400 text-sm">
+                        เซฟทั้งน้ำหนัก และโครงสร้างการเรียงตัวของเลเยอร์ คล้ายๆ กับการ <strong>"เซฟทั้งสมอง"</strong><br>
+                        <em>ข้อดี: สะดวกตอนโหลด ไม่ต้องประกาศคลาสโมเดลใหม่ แต่ไฟล์อาจใหญ่กว่าและผูกติดกับเวอร์ชัน PyTorch</em>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <!-- Left Column: Content -->
+            <div class="lg:col-span-7 prose font-sans">
+                
+                <div class="code-block bg-pytorch-code p-4 mb-8">
+                    <pre><code class="language-python">import torch
+import torchvision.models as models</code></pre>
+                </div>
+
+                <h2>การบันทึกและโหลด Model Weights (วิธีที่นิยมที่สุด)</h2>
+                <p>
+                    โมเดลใน PyTorch จะเก็บพารามิเตอร์ที่เรียนรู้มาแล้วไว้ในพจนานุกรมภายในที่เรียกว่า <code>state_dict</code> 
+                    เราสามารถบันทึกเฉพาะค่าเหล่านี้เก็บไว้ในไฟล์นามสกุล <code>.pth</code> ได้ผ่านคำสั่ง <code>torch.save</code>
+                </p>
+
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python"># โหลดโมเดลมาตรฐาน (VGG16) ที่ยังไม่ได้เทรนมาเป็นตัวอย่าง
+model = models.vgg16(weights='IMAGENET1K_V1')
+
+# บันทึกเฉพาะ Weights
+torch.save(model.state_dict(), 'model_weights.pth')
+print("Saved PyTorch Model State to model_weights.pth")</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>Saved PyTorch Model State to model_weights.pth</pre>
+                </div>
+
+                <h3>การโหลด Weights กลับมาใช้</h3>
+                <p>
+                    ในการโหลด Weights แบบ <code>state_dict</code> กลับมา <strong>เราจำเป็นต้องสร้าง Instance ของโมเดลแบบเดียวกันขึ้นมาก่อน</strong> (เหมือนสร้างร่างเปล่าๆ ขึ้นมารอรับความจำ)
+                    จากนั้นค่อยโหลดพารามิเตอร์ใส่เข้าไปด้วยคำสั่ง <code>load_state_dict()</code>
+                </p>
+
+                <div class="code-block bg-pytorch-code p-4 mb-4">
+                    <pre><code class="language-python"># 1. สร้างโครงสร้างโมเดลเปล่าๆ (ร่างเปล่า)
+# เราตั้ง weights=None เพื่อไม่โหลด weights จากเน็ต
+model = models.vgg16(weights=None) 
+
+# 2. โหลดความจำที่เราเซฟไว้ใส่เข้าไป
+model.load_state_dict(torch.load('model_weights.pth'))</code></pre>
+                </div>
+
+                <div class="bg-yellow-900/20 border-l-4 border-yellow-500 p-4 rounded mb-8">
+                    <p class="text-yellow-400 font-bold mb-1 text-sm uppercase">⚠️ ข้อควรระวัง (สำคัญมาก!)</p>
+                    <p class="text-sm text-gray-300 mb-0">
+                        ก่อนนำโมเดลไปทำการทายผล (Inference) คุณ <strong>ต้องเรียก <code>model.eval()</code> เสมอ</strong> 
+                        เพื่อสั่งให้เลเยอร์ Dropout และ Batch Normalization ทำงานในโหมดการประเมินผล มิฉะนั้นผลลัพธ์ที่ทายออกมาอาจเพี้ยนหรือไม่คงที่
+                    </p>
+                </div>
+
+                <h2>การบันทึกและโหลดทั้งโมเดล (Entire Model)</h2>
+                <p>
+                    หากเราไม่อยากมานั่งเขียนสร้างโครงสร้าง (Instantiate model class) ใหม่ทุกครั้งเวลาจะโหลด 
+                    เราสามารถสั่งเซฟ <strong>ทั้งโครงสร้าง (Structure) และน้ำหนัก (Weights)</strong> ลงไปในไฟล์เดียวกันได้เลย 
+                    โดยส่งตัวแปรโมเดลเข้าไปตรงๆ (ไม่ได้ส่งแค่ <code>state_dict</code>)
+                </p>
+
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python"># บันทึกทั้งโมเดล
+torch.save(model, 'model.pth')
+print("Saved Full PyTorch Model to model.pth")</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>Saved Full PyTorch Model to model.pth</pre>
+                </div>
+
+                <h3>การโหลด Entire Model</h3>
+                <p>การโหลดกลับมาก็ทำได้ง่ายๆ บรรทัดเดียว โดยไม่ต้องสร้างร่างเปล่ามารองรับ</p>
+
+                <div class="code-block bg-pytorch-code p-4 mb-4">
+                    <pre><code class="language-python"># โหลดทั้งโมเดลกลับมา
+model = torch.load('model.pth')</code></pre>
+                </div>
+
+                <p class="text-sm text-gray-400 italic mb-10">
+                    หมายเหตุ: การเซฟแบบ Entire Model นี้ ภายใต้เบื้องหลัง PyTorch ใช้โมดูล <code>pickle</code> ของ Python 
+                    ดังนั้น การจะโหลด <code>model.pth</code> ขึ้นมาใช้งานได้ โค้ดโปรเจกต์ของคุณจะต้องสามารถเข้าถึงคลาสหรือโครงสร้างต้นฉบับได้ในขณะที่รัน (Class Definition must be available)
+                </p>
+
+            </div>
+
+            <!-- Right Column: Interactive Simulator -->
+            <div class="lg:col-span-5 relative hidden lg:block">
+                <div class="sticky top-24">
+                    
+                    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl relative">
+                        <div class="text-center mb-6">
+                            <h2 class="text-xl font-bold text-white tracking-wide">Save & Load Simulator</h2>
+                            <p class="text-sm text-gray-400 mt-1">จำลองการเคลื่อนย้ายข้อมูลระหว่าง RAM กับ Disk</p>
+                        </div>
+
+                        <!-- Visualization Area -->
+                        <div class="flex justify-between items-center bg-black/50 border border-gray-700 rounded-xl p-4 mb-6 relative h-[220px]">
+                            
+                            <!-- RAM Area -->
+                            <div class="w-[45%] h-full bg-gray-800 rounded-lg border-2 border-dashed border-gray-600 flex flex-col items-center justify-center p-2 relative" id="ram-box">
+                                <span class="absolute top-2 left-2 text-[10px] text-gray-400 font-mono">Memory (RAM)</span>
+                                
+                                <!-- Model Container in RAM -->
+                                <div id="ram-model" class="w-24 h-28 border border-blue-500 bg-blue-900/20 rounded flex flex-col items-center justify-between p-2 mt-4 transition-all duration-300">
+                                    <span class="text-[10px] text-blue-300 font-bold mb-1">Model Structure</span>
+                                    
+                                    <!-- Weights Data -->
+                                    <div id="ram-weights" class="w-full flex-1 bg-green-900/50 border border-green-500 rounded flex items-center justify-center transition-all duration-300">
+                                        <span class="text-[10px] text-green-400 font-bold text-center">Trained<br>Weights</span>
+                                    </div>
+                                </div>
+                                <div id="ram-status" class="text-[10px] text-gray-500 mt-2">Ready to Inference</div>
+                            </div>
+
+                            <!-- Transfer Animation Container (Hidden by default) -->
+                            <div id="transfer-item" class="absolute w-20 h-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none z-20 flex items-center justify-center"></div>
+
+                            <!-- Arrow indicators -->
+                            <div class="flex flex-col items-center justify-center w-[10%] text-gray-600">
+                                <svg class="w-6 h-6 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l-4-4m0 0l4-4m-4 4h18"></path></svg>
+                            </div>
+
+                            <!-- Hard Drive Area -->
+                            <div class="w-[45%] h-full bg-gray-800 rounded-lg border-2 border-gray-600 flex flex-col items-center justify-start p-2 relative" id="disk-box">
+                                <span class="absolute top-2 left-2 text-[10px] text-gray-400 font-mono">Disk (Drive)</span>
+                                
+                                <!-- File List -->
+                                <div class="w-full mt-6 space-y-2 flex flex-col items-center" id="disk-files">
+                                    <!-- Files will be generated here -->
+                                    <span class="text-xs text-gray-600 italic mt-4" id="empty-disk-msg">No files saved yet.</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Controls -->
+                        <div class="space-y-4">
+                            <!-- Method 1: state_dict -->
+                            <div class="bg-black/30 p-3 rounded-lg border border-gray-700">
+                                <h4 class="text-xs text-gray-400 mb-2 font-mono">Method 1: state_dict (Weights Only)</h4>
+                                <div class="flex space-x-2">
+                                    <button onclick="saveWeights()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-green-400 font-bold py-2 rounded text-xs transition-colors border border-gray-600">
+                                        Save Weights
+                                    </button>
+                                    <button onclick="loadWeights()" id="btn-load-weights" class="flex-1 bg-gray-800 text-gray-600 font-bold py-2 rounded text-xs transition-colors border border-gray-700 cursor-not-allowed" disabled>
+                                        Load Weights
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Method 2: Entire Model -->
+                            <div class="bg-black/30 p-3 rounded-lg border border-gray-700">
+                                <h4 class="text-xs text-gray-400 mb-2 font-mono">Method 2: Entire Model</h4>
+                                <div class="flex space-x-2">
+                                    <button onclick="saveFullModel()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-blue-400 font-bold py-2 rounded text-xs transition-colors border border-gray-600">
+                                        Save Full Model
+                                    </button>
+                                    <button onclick="loadFullModel()" id="btn-load-full" class="flex-1 bg-gray-800 text-gray-600 font-bold py-2 rounded text-xs transition-colors border border-gray-700 cursor-not-allowed" disabled>
+                                        Load Full Model
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Reset RAM Action -->
+                            <div class="text-center pt-2">
+                                <button onclick="resetRAM()" class="text-xs text-gray-500 hover:text-white underline decoration-gray-500">
+                                    Clear RAM (Simulate Restart)
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Terminal Output Box -->
+                        <div class="mt-4 bg-[#0a0a0a] border border-[#333] rounded-lg p-3 font-mono text-[10px] text-gray-400 h-[100px] overflow-y-auto leading-relaxed shadow-inner" id="sim-log">
+                            > Simulator Ready. Model is loaded in RAM.
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 mt-12 py-8 text-center text-sm text-gray-500">
+        <p>สร้างขึ้นสำหรับการเรียนรู้ PyTorch เบื้องต้น | ข้อมูลอ้างอิงจาก <a href="https://docs.pytorch.org/tutorials/beginner/basics/saveloadrun_tutorial.html" class="text-pytorch-red hover:underline" target="_blank">PyTorch Documentation</a></p>
+    </footer>
+
+    <!-- Interactive Simulator Script -->
+    <script>
+        hljs.highlightAll();
+
+        // Simulator Logic
+        const ramModel = document.getElementById('ram-model');
+        const ramWeights = document.getElementById('ram-weights');
+        const ramStatus = document.getElementById('ram-status');
+        const transferItem = document.getElementById('transfer-item');
+        const diskFiles = document.getElementById('disk-files');
+        const emptyMsg = document.getElementById('empty-disk-msg');
+        const simLog = document.getElementById('sim-log');
+
+        const btnLoadWeights = document.getElementById('btn-load-weights');
+        const btnLoadFull = document.getElementById('btn-load-full');
+
+        let isAnimating = false;
+        let fileWeightsSaved = false;
+        let fileModelSaved = false;
+        
+        // RAM States: 'full', 'empty_structure', 'none'
+        let currentRamState = 'full';
+
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        function logConsole(msg, color="text-gray-300") {
+            simLog.innerHTML += `<br><span class="${color}">> ${msg}</span>`;
+            simLog.scrollTop = simLog.scrollHeight;
+        }
+
+        function createDiskFile(type) {
+            if(emptyMsg) emptyMsg.style.display = 'none';
+            
+            const fileEl = document.createElement('div');
+            fileEl.className = 'w-11/12 bg-gray-900 border border-gray-600 rounded p-2 flex items-center justify-start file-icon';
+            
+            if(type === 'weights') {
+                fileEl.innerHTML = `<svg class="w-4 h-4 text-green-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg><span class="text-[10px] text-gray-300 font-mono">weights.pth</span>`;
+                fileEl.id = 'file-weights';
+            } else {
+                fileEl.innerHTML = `<svg class="w-4 h-4 text-blue-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg><span class="text-[10px] text-gray-300 font-mono">model.pth</span>`;
+                fileEl.id = 'file-model';
+            }
+            diskFiles.appendChild(fileEl);
+        }
+
+        async function animateTransfer(elementHTML, startX, startY, endX, endY, duration=600) {
+            transferItem.innerHTML = elementHTML;
+            transferItem.style.transition = 'none';
+            transferItem.style.transform = `translate(${startX}px, ${startY}px) scale(1)`;
+            transferItem.style.opacity = '1';
+            
+            // force reflow
+            transferItem.offsetHeight; 
+            
+            transferItem.style.transition = `all ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+            transferItem.style.transform = `translate(${endX}px, ${endY}px) scale(0.5)`;
+            transferItem.style.opacity = '0.5';
+
+            await sleep(duration);
+            transferItem.style.opacity = '0';
+            transferItem.innerHTML = '';
+        }
+
+        async function saveWeights() {
+            if(isAnimating) return;
+            if(currentRamState !== 'full') {
+                logConsole("Error: No trained weights in RAM to save!", "text-red-400");
+                return;
+            }
+            if(fileWeightsSaved) {
+                logConsole("Weights file already exists on disk.", "text-gray-500");
+                return;
+            }
+
+            isAnimating = true;
+            logConsole("Executing: torch.save(model.state_dict(), 'weights.pth')", "text-yellow-400");
+
+            // Clone visually
+            const weightsVisual = `<div class="w-[80px] h-[50px] bg-green-900/50 border border-green-500 rounded flex items-center justify-center"><span class="text-[10px] text-green-400 font-bold">Weights</span></div>`;
+            
+            // Animate RAM to Disk
+            await animateTransfer(weightsVisual, -80, 20, 80, 20);
+
+            // Create File
+            createDiskFile('weights');
+            fileWeightsSaved = true;
+            logConsole("Success: weights.pth saved to disk.", "text-green-400");
+
+            // Enable Load Button
+            btnLoadWeights.disabled = false;
+            btnLoadWeights.classList.replace('bg-gray-800', 'bg-gray-700');
+            btnLoadWeights.classList.replace('text-gray-600', 'text-white');
+            btnLoadWeights.classList.add('hover:bg-gray-600');
+
+            isAnimating = false;
+        }
+
+        async function saveFullModel() {
+            if(isAnimating) return;
+            if(currentRamState !== 'full') {
+                logConsole("Error: Incomplete model in RAM!", "text-red-400");
+                return;
+            }
+            if(fileModelSaved) {
+                logConsole("Model file already exists on disk.", "text-gray-500");
+                return;
+            }
+
+            isAnimating = true;
+            logConsole("Executing: torch.save(model, 'model.pth')", "text-yellow-400");
+
+            // Clone visually
+            const modelVisual = `<div class="w-[90px] h-[100px] border border-blue-500 bg-blue-900/20 rounded flex flex-col items-center justify-center"><span class="text-[10px] text-blue-300 font-bold">Structure + Weights</span></div>`;
+            
+            // Animate RAM to Disk
+            await animateTransfer(modelVisual, -80, 0, 80, 40);
+
+            // Create File
+            createDiskFile('model');
+            fileModelSaved = true;
+            logConsole("Success: model.pth saved to disk.", "text-green-400");
+
+            // Enable Load Button
+            btnLoadFull.disabled = false;
+            btnLoadFull.classList.replace('bg-gray-800', 'bg-gray-700');
+            btnLoadFull.classList.replace('text-gray-600', 'text-white');
+            btnLoadFull.classList.add('hover:bg-gray-600');
+
+            isAnimating = false;
+        }
+
+        async function loadWeights() {
+            if(isAnimating || !fileWeightsSaved) return;
+            isAnimating = true;
+
+            if(currentRamState === 'none') {
+                logConsole("Error: Cannot load weights into nothing! You must create model structure first.", "text-red-400");
+                logConsole("Simulating: model = NeuralNetwork()", "text-gray-400");
+                
+                // Create empty structure
+                ramModel.style.opacity = '1';
+                ramWeights.className = 'w-full flex-1 bg-gray-800 border border-dashed border-gray-600 rounded flex items-center justify-center';
+                ramWeights.innerHTML = '<span class="text-[10px] text-gray-500 font-bold text-center">Empty<br>Weights</span>';
+                currentRamState = 'empty_structure';
+                ramStatus.innerText = "Model Structure initialized.";
+                await sleep(1000);
+            }
+
+            logConsole("Executing: model.load_state_dict(torch.load('weights.pth'))", "text-yellow-400");
+
+            // Animate Disk to RAM
+            const weightsVisual = `<div class="w-[80px] h-[50px] bg-green-900/50 border border-green-500 rounded flex items-center justify-center"><span class="text-[10px] text-green-400 font-bold">Weights</span></div>`;
+            await animateTransfer(weightsVisual, 80, 20, -80, 20);
+
+            // Update RAM UI
+            ramWeights.className = 'w-full flex-1 bg-green-900/50 border border-green-500 rounded flex items-center justify-center transition-all duration-300';
+            ramWeights.innerHTML = '<span class="text-[10px] text-green-400 font-bold text-center">Trained<br>Weights</span>';
+            currentRamState = 'full';
+            ramStatus.innerText = "Ready to Inference (Don't forget .eval()!)";
+
+            logConsole("Success: Weights loaded into model.", "text-green-400");
+            isAnimating = false;
+        }
+
+        async function loadFullModel() {
+            if(isAnimating || !fileModelSaved) return;
+            isAnimating = true;
+
+            logConsole("Executing: model = torch.load('model.pth')", "text-yellow-400");
+
+            if(currentRamState !== 'none') {
+                logConsole("Overwriting existing model in RAM...", "text-gray-500");
+                ramModel.style.opacity = '0';
+                await sleep(400);
+            }
+
+            // Animate Disk to RAM
+            const modelVisual = `<div class="w-[90px] h-[100px] border border-blue-500 bg-blue-900/20 rounded flex flex-col items-center justify-center"><span class="text-[10px] text-blue-300 font-bold">Structure + Weights</span></div>`;
+            await animateTransfer(modelVisual, 80, 40, -80, 0);
+
+            // Update RAM UI
+            ramModel.style.opacity = '1';
+            ramWeights.className = 'w-full flex-1 bg-green-900/50 border border-green-500 rounded flex items-center justify-center transition-all duration-300';
+            ramWeights.innerHTML = '<span class="text-[10px] text-green-400 font-bold text-center">Trained<br>Weights</span>';
+            currentRamState = 'full';
+            ramStatus.innerText = "Ready to Inference (Full model loaded)";
+
+            logConsole("Success: Entire model loaded into RAM.", "text-green-400");
+            isAnimating = false;
+        }
+
+        function resetRAM() {
+            if(isAnimating) return;
+            logConsole("--- RAM CLEARED (Simulating program restart) ---", "text-red-400");
+            ramModel.style.opacity = '0';
+            currentRamState = 'none';
+            ramStatus.innerText = "RAM is empty.";
+        }
+    </script>
+</body>
+</html>

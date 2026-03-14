@@ -3,487 +3,450 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Optimizing Model Parameters - PyTorch Tutorial</title>
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/styles.css">
+    <title>PyTorch Optimization - การฝึกสอนโมเดล</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Sarabun:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        pytorch: {
+                            red: '#EE4C2C',
+                            dark: '#1e1e1e',
+                            light: '#f8f9fa',
+                            code: '#282c34'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        .section {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-            border-radius: 16px;
-            padding: 2rem;
-            margin: 1.5rem 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-        }
-        .training-loop {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-            padding: 2rem;
-            background: linear-gradient(135deg, rgba(20, 30, 48, 0.9), rgba(10, 20, 35, 0.95));
-            border-radius: 20px;
-            margin: 2rem 0;
-            border: 1px solid rgba(239, 68, 68, 0.3);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-        }
-        .loop-step {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
-            transition: all 0.3s ease;
-        }
-        .loop-step:hover {
-            transform: translateX(10px);
-            background: rgba(0, 0, 0, 0.4);
-        }
-        .step-number {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-        .hyperparam-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin: 2rem 0;
-        }
-        .hyperparam-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
-            border-radius: 16px;
-            padding: 1.5rem;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            transition: all 0.3s ease;
-        }
-        .hyperparam-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
-        }
-        .hyperparam-card h3 {
-            color: #fbbf24;
+        body { background-color: #121212; color: #e0e0e0; }
+        .code-block {
+            border-left: 4px solid #EE4C2C;
+            border-radius: 0.5rem;
+            overflow: hidden;
             margin-bottom: 0.5rem;
         }
-        .hyperparam-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #10b981;
-            font-family: 'Fira Code', monospace;
+        .code-block.has-output {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid #333;
         }
-        .layer-card {
-            background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9));
-            border-radius: 16px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .layer-card h3 {
-            color: #a78bfa;
-            margin-bottom: 1rem;
-        }
-        .code-block {
-            background: rgba(0, 0, 0, 0.4);
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            font-family: 'Fira Code', monospace;
-            font-size: 0.9rem;
-            overflow-x: auto;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-        }
-        .code-block .keyword { color: #c084fc; }
-        .code-block .class { color: #60a5fa; }
-        .code-block .function { color: #34d399; }
-        .code-block .number { color: #f472b6; }
-        .code-block .comment { color: #64748b; }
-        .breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-        .breadcrumb a {
-            color: #a78bfa;
-            text-decoration: none;
-        }
-        .breadcrumb a:hover {
-            text-decoration: underline;
-        }
-        .section-title {
-            color: #e2e8f0;
-            font-size: 1.8rem;
-            margin-bottom: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        .section-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-        .epoch-progress {
-            margin: 2rem 0;
-        }
-        .epoch-bar {
-            height: 30px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            overflow: hidden;
-            margin: 1rem 0;
-        }
-        .epoch-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #10b981, #34d399, #10b981);
-            border-radius: 15px;
-            animation: progress 2s ease-in-out infinite;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        @keyframes progress {
-            0%, 100% { opacity: 0.8; }
-            50% { opacity: 1; }
-        }
-        .loss-display {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        .loss-box {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 12px;
+        .output-block {
+            background-color: #0a0a0a;
+            border-left: 4px solid #4B5563;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
             padding: 1rem;
-            text-align: center;
-        }
-        .loss-label {
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-        .loss-value {
-            color: #10b981;
-            font-size: 1.5rem;
-            font-weight: bold;
             font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            color: #9CA3AF;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
         }
-        .accuracy-badge {
-            background: linear-gradient(135deg, #10b981, #059669);
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: bold;
+        .output-label { color: #6B7280; font-size: 0.75rem; margin-bottom: 0.5rem; user-select: none; letter-spacing: 0.05em; }
+        
+        .prose h1, .prose h2, .prose h3 { color: #ffffff; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose h1 { font-size: 2.25rem; font-weight: 700; color: #EE4C2C; }
+        .prose h2 { font-size: 1.8rem; font-weight: 600; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+        .prose h3 { font-size: 1.4rem; font-weight: 600; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.7; color: #b3b3b3; font-size: 1.05rem; }
+        .prose a { color: #60a5fa; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .prose strong { color: #e5e7eb; }
+
+        /* Simulator Styles */
+        .progress-bar {
+            transition: width 0.1s linear;
         }
+        .blinking-cursor {
+            animation: blink 1s step-end infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #EE4C2C; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header>
-            <h1>⚙️ Optimizing Model Parameters</h1>
-            <p class="subtitle">เรียนรู้การ train model ด้วย Gradient Descent</p>
-        </header>
+<body class="antialiased selection:bg-pytorch-red selection:text-white flex flex-col min-h-screen">
 
-        <div class="breadcrumb">
-            <a href="index.html">Tensors</a> →
-            <a href="data.html">Datasets</a> →
-            <a href="transforms.html">Transforms</a> →
-            <a href="model.html">Build Model</a> →
-            <a href="autograd.html">Autograd</a> →
-            <span>Optimization</span>
+    <!-- Header -->
+    <header class="bg-black/50 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- PyTorch Logo -->
+                
+                <h1 class="text-xl font-bold text-white font-sans tracking-wide">PyTorch<span class="text-gray-400 font-light"> Basics</span></h1>
+            </div>
+            <nav class="flex flex-wrap justify-end gap-1">
+                <a href="index.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">5W1H</a>
+                <a href="tensor.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Tensors</a>
+                <a href="datasets.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Datasets</a>
+                <a href="transforms.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Transforms</a>
+                <a href="buildmodel.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Build Model</a>
+                <a href="autograd.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Autograd</a>
+                <a href="optimization.html" class="text-sm font-medium text-pytorch-red bg-pytorch-red/10 px-3 py-2 rounded-md">Optimization</a>
+                <a href="saveloadrun.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Save/Load</a>
+            </nav>
         </div>
+    </header>
 
-        <nav class="page-nav">
-            <a href="autograd.html" class="nav-link">◀ ก่อนหน้า: Autograd</a>
-        </nav>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">🎯</span>
-                กระบวนการ Train Model
-            </h2>
-            <p>การ train model เป็น iterative process ในแต่ละ iteration:</p>
-            <ol style="margin-left: 2rem; line-height: 2;">
-                <li>Model ทำนายผลลัพธ์</li>
-                <li>คำนวณ <span class="keyword" data-tooltip="Loss measures how wrong the model's prediction is. We want to minimize this value during training.">loss</span> (ความผิดพลาด)</li>
-                <li>คำนวณ <span class="keyword" data-tooltip="Gradients tell us how to change parameters to reduce loss. We move in the opposite direction of gradients.">gradients</span> ย้อนกลับ</li>
-                <li>ปรับ parameters ด้วย <span class="keyword" data-tooltip="Optimization algorithms update model parameters based on gradients to minimize loss.">optimization</span></li>
-            </ol>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">🔧</span>
-                Hyperparameters
-            </h2>
-            <p>Hyperparameters คือ parameters ที่เรากำหนดเองเพื่อควบคุมการ train</p>
-
-            <div class="hyperparam-grid">
-                <div class="hyperparam-card">
-                    <h3>📅 Epochs</h3>
-                    <div class="hyperparam-value">5</div>
-                    <p>จำนวนรอบที่ loop ผ่าน dataset ทั้งหมด</p>
-                </div>
-                <div class="hyperparam-card">
-                    <h3>📦 Batch Size</h3>
-                    <div class="hyperparam-value">64</div>
-                    <p>จำนวน samples ก่อนอัพเดท parameters</p>
-                </div>
-                <div class="hyperparam-card">
-                    <h3>📈 Learning Rate</h3>
-                    <div class="hyperparam-value">1e-3</div>
-                    <p>ขนาดก้าวในการปรับ parameters</p>
-                </div>
-            </div>
-
-            <div class="code-block">
-learning_rate = <span class="number">1e-3</span>
-batch_size = <span class="number">64</span>
-epochs = <span class="number">5</span>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">📝</span>
-                Loss Function
-            </h2>
-            <p><span class="keyword" data-tooltip="Loss function measures the difference between predicted and actual values. We minimize this during training.">Loss function</span> วัดความผิดพลาดระหว่าง prediction กับ target</p>
-
-            <div class="layer-card">
-                <h3>Loss Functions ที่ใช้บ่อย</h3>
-                <table class="comparison-table">
-                    <tr>
-                        <th>Loss Function</th>
-                        <th>ใช้กับ</th>
-                    </tr>
-                    <tr>
-                        <td><span class="keyword">nn.MSELoss</span></td>
-                        <td>Regression (ค่าต่อเนื่อง)</td>
-                    </tr>
-                    <tr>
-                        <td><span class="keyword">nn.NLLLoss</span></td>
-                        <td>Classification (Negative Log Likelihood)</td>
-                    </tr>
-                    <tr>
-                        <td><span class="keyword">nn.CrossEntropyLoss</span></td>
-                        <td>Classification (รวม LogSoftmax + NLLLoss)</td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="code-block">
-<span class="comment"># สร้าง loss function</span>
-loss_fn = <span class="class">nn.CrossEntropyLoss</span>()
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">🚀</span>
-                Optimizer
-            </h2>
-            <p><span class="keyword" data-tooltip="Optimizer updates model parameters based on gradients to minimize loss. Common algorithms: SGD, Adam, RMSprop.">Optimizer</span> ปรับ parameters ตาม gradients</p>
-
-            <div class="code-block">
-optimizer = <span class="class">torch.optim.SGD</span>(model.parameters(), lr=learning_rate)
-            </div>
-
-            <div class="layer-card">
-                <h3>Optimizers ที่นิยม</h3>
-                <ul>
-                    <li><strong>SGD</strong> - Stochastic Gradient Descent</li>
-                    <li><strong>Adam</strong> - Adaptive Moment Estimation (นิยมมาก)</li>
-                    <li><strong>RMSprop</strong> - Root Mean Square Propagation</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">🔄</span>
-                Training Loop
-            </h2>
-            <p>แต่ละ epoch ประกอบด้วย:</p>
-
-            <div class="training-loop">
-                <div class="loop-step">
-                    <div class="step-number">1</div>
-                    <div>
-                        <strong>Forward Pass</strong> - ทำนายผลลัพธ์
-                        <div class="demo-box" style="margin: 0.5rem 0;">
-pred = model(X)
-loss = loss_fn(pred, y)
-                        </div>
-                    </div>
-                </div>
-                <div class="loop-step">
-                    <div class="step-number">2</div>
-                    <div>
-                        <strong>Zero Grad</strong> - ล้าง gradients เก่า
-                        <div class="demo-box" style="margin: 0.5rem 0;">
-optimizer.zero_grad()
-                        </div>
-                    </div>
-                </div>
-                <div class="loop-step">
-                    <div class="step-number">3</div>
-                    <div>
-                        <strong>Backward Pass</strong> - คำนวณ gradients ใหม่
-                        <div class="demo-box" style="margin: 0.5rem 0;">
-loss.backward()
-                        </div>
-                    </div>
-                </div>
-                <div class="loop-step">
-                    <div class="step-number">4</div>
-                    <div>
-                        <strong>Update Parameters</strong> - ปรับ parameters
-                        <div class="demo-box" style="margin: 0.5rem 0;">
-optimizer.step()
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">📊</span>
-                Training Results
-            </h2>
-            <p>ผลลัพธ์หลังจาก train 5 epochs:</p>
-
-            <div class="epoch-progress">
-                <div class="epoch-bar">
-                    <div class="epoch-fill" style="width: 50%;">Epoch 5/5</div>
-                </div>
-            </div>
-
-            <div class="loss-display">
-                <div class="loss-box">
-                    <div class="loss-label">Test Accuracy</div>
-                    <div class="loss-value">65.3%</div>
-                </div>
-                <div class="loss-box">
-                    <div class="loss-label">Avg Loss</div>
-                    <div class="loss-value">1.07</div>
-                </div>
-            </div>
-
-            <div class="layer-card" style="border-left: 4px solid #10b981;">
-                <h3>📈 ผลลัพธ์แต่ละ Epoch</h3>
-                <table class="comparison-table" style="margin: 0;">
-                    <tr>
-                        <th>Epoch</th>
-                        <th>Accuracy</th>
-                        <th>Avg Loss</th>
-                    </tr>
-                    <tr>
-                        <td>1</td>
-                        <td>45.8%</td>
-                        <td>2.147</td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>61.1%</td>
-                        <td>1.858</td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>63.0%</td>
-                        <td>1.490</td>
-                    </tr>
-                    <tr>
-                        <td>4</td>
-                        <td>64.0%</td>
-                        <td>1.233</td>
-                    </tr>
-                    <tr>
-                        <td>5</td>
-                        <td>65.3%</td>
-                        <td>1.073</td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2 class="section-title">
-                <span class="section-icon">💻</span>
-                Code สมบูรณ์
-            </h2>
-
-            <div class="code-block">
-<span class="keyword">def</span> <span class="function">train_loop</span>(dataloader, model, loss_fn, optimizer):
-    size = <span class="function">len</span>(dataloader.dataset)
-    model.<span class="function">train</span>()
-    
-    <span class="keyword">for</span> batch, (X, y) <span class="keyword">in</span> <span class="function">enumerate</span>(dataloader):
-        pred = <span class="function">model</span>(X)
-        loss = <span class="function">loss_fn</span>(pred, y)
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
         
-        loss.<span class="function">backward</span>()
-        optimizer.<span class="function">step</span>()
-        optimizer.<span class="function">zero_grad</span>()
-
-<span class="keyword">def</span> <span class="function">test_loop</span>(dataloader, model, loss_fn):
-    model.<span class="function">eval</span>()
-    size = <span class="function">len</span>(dataloader.dataset)
-    test_loss, correct = <span class="number">0</span>, <span class="number">0</span>
-
-    <span class="keyword">with</span> <span class="function">torch.no_grad</span>():
-        <span class="keyword">for</span> X, y <span class="keyword">in</span> dataloader:
-            pred = <span class="function">model</span>(X)
-            test_loss += <span class="function">loss_fn</span>(pred, y).<span class="function">item</span>()
-            correct += (pred.argmax(<span class="number">1</span>) == y).<span class="function">type</span>(torch.float).<span class="function">sum</span>().<span class="function">item</span>()
-
-    test_loss /= <span class="function">len</span>(dataloader)
-    correct /= size
-    <span class="function">print</span>(f<span class="string">"Accuracy: {(100*correct):>0.1f}%"</span>)
-
-<span class="comment"># Train!</span>
-epochs = <span class="number">10</span>
-<span class="keyword">for</span> t <span class="keyword">in</span> <span class="function">range</span>(epochs):
-    <span class="function">print</span>(f<span class="string">"Epoch {t+1}"</span>)
-    <span class="function">train_loop</span>(train_dataloader, model, loss_fn, optimizer)
-    <span class="function">test_loop</span>(test_dataloader, model, loss_fn)
-
-<span class="function">print</span>(<span class="string">"Done!"</span>)
+        <!-- INTRO KEY CONCEPT BLOCK -->
+        <div class="bg-gradient-to-r from-gray-900 to-gray-800 border border-pytorch-red/30 rounded-2xl p-6 md:p-8 mb-12 shadow-lg relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-pytorch-red/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+            
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4 flex items-center">
+                <svg class="w-8 h-8 mr-3 text-pytorch-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Key Concept: การเรียนรู้จากความผิดพลาด
+            </h2>
+            <p class="text-gray-300 text-lg leading-relaxed mb-6 max-w-4xl">
+                ตอนนี้เรามีโมเดลและข้อมูลแล้ว ถึงเวลาฝึกให้โมเดลของเราทำนายได้อย่างแม่นยำ กระบวนการนี้เรียกว่า <strong>Optimization (การปรับปรุงพารามิเตอร์)</strong> ซึ่งทำงานคล้ายกับนักเรียนที่กำลังทำข้อสอบ:
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="bg-black/40 border border-gray-700 p-4 rounded-xl flex flex-col items-center">
+                    <span class="text-3xl mb-2">🎯</span>
+                    <h3 class="text-white font-bold mb-1">1. ทำนาย (Predict)</h3>
+                    <p class="text-gray-400 text-xs text-left">โมเดลลองทายคำตอบจากรูปภาพที่ได้รับ (Forward Pass)</p>
+                </div>
+                <div class="bg-black/40 border border-red-900/50 p-4 rounded-xl flex flex-col items-center">
+                    <span class="text-3xl mb-2">📉</span>
+                    <h3 class="text-white font-bold mb-1">2. ตรวจข้อสอบ (Loss)</h3>
+                    <p class="text-gray-400 text-xs text-left">ใช้ <strong>Loss Function</strong> เพื่อวัดว่าโมเดลทายผิดไปจากคำตอบจริงมากแค่ไหน</p>
+                </div>
+                <div class="bg-black/40 border border-green-900/50 p-4 rounded-xl flex flex-col items-center">
+                    <span class="text-3xl mb-2">⚙️</span>
+                    <h3 class="text-white font-bold mb-1">3. ปรับปรุง (Optimize)</h3>
+                    <p class="text-gray-400 text-xs text-left">ใช้ <strong>Optimizer</strong> และสมองกล Autograd ขยับน้ำหนัก (Weights) เพื่อให้คราวหน้าทายแม่นขึ้น</p>
+                </div>
             </div>
         </div>
 
-        <nav class="page-nav">
-            <a href="autograd.html" class="nav-link">◀ ก่อนหน้า: Autograd</a>
-        </nav>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <!-- Left Column: Content -->
+            <div class="lg:col-span-7 prose font-sans">
+                
+                <h2>ตั้งค่าเริ่มต้น (Prerequisite Code)</h2>
+                <p>เราจะโหลดโค้ดจากบทก่อนๆ ทั้ง Dataset, DataLoader และโครงสร้าง Neural Network มาไว้ด้วยกันก่อน</p>
+                
+                <div class="code-block bg-pytorch-code p-4">
+                    <pre><code class="language-python">import torch
+from torch import nn
+from torch.utils.data import DataLoader
+from torchvision import datasets
+from torchvision.transforms import ToTensor
 
-        <footer>
-            <p>PyTorch Tutorial - Learn the Basics</p>
-        </footer>
-    </div>
+# 1. โหลด Dataset
+training_data = datasets.FashionMNIST(root="data", train=True, download=True, transform=ToTensor())
+test_data = datasets.FashionMNIST(root="data", train=False, download=True, transform=ToTensor())
 
-    <div id="tooltip" class="tooltip"></div>
+# 2. สร้าง DataLoader
+train_dataloader = DataLoader(training_data, batch_size=64)
+test_dataloader = DataLoader(test_data, batch_size=64)
 
-    <script src="js/tooltip.js"></script>
+# 3. กำหนดโมเดล
+class NeuralNetwork(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential(
+            nn.Linear(28*28, 512), nn.ReLU(),
+            nn.Linear(512, 512), nn.ReLU(),
+            nn.Linear(512, 10),
+        )
+
+    def forward(self, x):
+        x = self.flatten(x)
+        logits = self.linear_relu_stack(x)
+        return logits
+
+model = NeuralNetwork()</code></pre>
+                </div>
+
+                <h2>Hyperparameters (ตัวแปรควบคุมการเทรน)</h2>
+                <p>
+                    ไฮเปอร์พารามิเตอร์ คือค่าพารามิเตอร์ที่เราเป็นคนตั้งขึ้นเอง (ปรับจูนได้) ก่อนที่จะเริ่มรันการฝึกสอน ซึ่งจะส่งผลโดยตรงกับความเร็วและคุณภาพของการเรียนรู้
+                </p>
+                <ul>
+                    <li><strong>Number of Epochs</strong> - จำนวนรอบที่โมเดลจะได้เห็นข้อมูลทั้งหมดใน Dataset</li>
+                    <li><strong>Batch Size</strong> - จำนวนข้อมูลที่ดึงมาป้อนโมเดลต่อ 1 ครั้งก่อนคำนวณปรับค่าน้ำหนัก</li>
+                    <li><strong>Learning Rate</strong> - อัตราการเรียนรู้ (ความก้าวร้าวในการปรับน้ำหนัก) ค่าน้อยโมเดลเรียนรู้ช้าแต่ละเอียด ค่ามากโมเดลเรียนรู้เร็วแต่ค่าอาจจะแกว่ง</li>
+                </ul>
+
+                <div class="code-block bg-pytorch-code p-4">
+                    <pre><code class="language-python">learning_rate = 1e-3
+batch_size = 64
+epochs = 5</code></pre>
+                </div>
+
+                <h2>Optimization Loop</h2>
+                <p>ในแต่ละ Epoch จะประกอบด้วย 2 ลูปหลักๆ คือ:</p>
+                <ol>
+                    <li><strong>The Train Loop</strong> - ลูปการเทรน โมเดลเรียนรู้เพื่อลดค่าความสูญเสีย (Loss)</li>
+                    <li><strong>The Validation/Test Loop</strong> - ลูปทดสอบ ลองนำข้อมูลใหม่ที่โมเดลไม่เคยเห็นมาให้มันทำนาย เพื่อดูว่าประสิทธิภาพดีขึ้นหรือไม่</li>
+                </ol>
+
+                <h3>Loss Function</h3>
+                <p>เมื่อเริ่มต้นเทรน โมเดลอาจจะให้คำตอบที่แย่มากๆ <code>Loss function</code> คือตัววัดระดับ "ความแย่" นั้น เป้าหมายของการเทรนคือทำให้ค่า Loss นี้น้อยที่สุด ในงาน Classification เรามักใช้ <code>nn.CrossEntropyLoss</code></p>
+                <div class="code-block bg-pytorch-code p-4 mb-4">
+                    <pre><code class="language-python"># Initialize the loss function
+loss_fn = nn.CrossEntropyLoss()</code></pre>
+                </div>
+
+                <h3>Optimizer</h3>
+                <p>Optimization คือกระบวนการปรับจูนพารามิเตอร์เพื่อลดความผิดพลาด ในตัวอย่างนี้เราจะใช้ Stochastic Gradient Descent (SGD) โดย PyTorch มีอัลกอริทึมให้เลือกหลายแบบ (เช่น ADAM, RMSProp)</p>
+                <div class="code-block bg-pytorch-code p-4 mb-4">
+                    <pre><code class="language-python">optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate)</code></pre>
+                </div>
+
+                <p>ภายใน Training Loop, <strong>Optimizer</strong> จะทำ 3 ขั้นตอนเสมอ:</p>
+                <ul>
+                    <li><code>optimizer.zero_grad()</code>: ล้างค่า Gradients จากรอบที่แล้วทิ้งไป ไม่ให้มันสะสมปนกัน</li>
+                    <li><code>loss.backward()</code>: สั่งให้ Autograd คำนวณ Gradients จาก Loss ย้อนกลับไปหาตัวแปรทุกตัว</li>
+                    <li><code>optimizer.step()</code>: นำค่า Gradients ที่ได้มาอัปเดตน้ำหนักของโมเดล</li>
+                </ul>
+
+                <h2>Full Implementation (ประกอบร่าง)</h2>
+                <p>เรามากำหนดฟังก์ชัน <code>train_loop</code> และ <code>test_loop</code> ตามหลักการที่อธิบายไปด้านบนกัน</p>
+
+                <div class="code-block bg-pytorch-code p-4">
+                    <pre><code class="language-python">def train_loop(dataloader, model, loss_fn, optimizer):
+    size = len(dataloader.dataset)
+    model.train() # ตั้งโหมดโมเดลเป็นการเทรน
+    for batch, (X, y) in enumerate(dataloader):
+        # คำนวณการทำนายและ Loss
+        pred = model(X)
+        loss = loss_fn(pred, y)
+
+        # Backpropagation (ปรับน้ำหนัก)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # ปรินต์ความคืบหน้าทุกๆ 100 batch
+        if batch % 100 == 0:
+            loss, current = loss.item(), (batch + 1) * len(X)
+            print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
+
+def test_loop(dataloader, model, loss_fn):
+    model.eval() # ตั้งโหมดโมเดลเป็นการประเมิน
+    size = len(dataloader.dataset)
+    num_batches = len(dataloader)
+    test_loss, correct = 0, 0
+
+    with torch.no_grad(): # ไม่ต้องจำ Gradients
+        for X, y in dataloader:
+            pred = model(X)
+            test_loss += loss_fn(pred, y).item()
+            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+
+    test_loss /= num_batches
+    correct /= size
+    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")</code></pre>
+                </div>
+
+                <h2>เริ่มรันการเทรน 5 Epochs!</h2>
+                <div class="code-block bg-pytorch-code p-4 mb-4">
+                    <pre><code class="language-python">epochs = 5
+for t in range(epochs):
+    print(f"Epoch {t+1}\n-------------------------------")
+    train_loop(train_dataloader, model, loss_fn, optimizer)
+    test_loop(test_dataloader, model, loss_fn)
+print("Done!")</code></pre>
+                </div>
+                <p class="text-sm italic text-gray-400">-> คุณสามารถลองกด <strong>Start Training Simulation</strong> ที่บอร์ดจำลองด้านขวา เพื่อดูตัวอย่างผลลัพธ์ที่ได้จากโค้ดชุดนี้ได้เลยครับ</p>
+                <div class="mb-10"></div>
+            </div>
+
+            <!-- Right Column: Interactive Simulator -->
+            <div class="lg:col-span-5 relative hidden lg:block">
+                <div class="sticky top-24">
+                    
+                    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl relative min-h-[500px]">
+                        <div class="text-center mb-6">
+                            <h2 class="text-xl font-bold text-white tracking-wide">Training Simulator</h2>
+                            <p class="text-sm text-gray-400 mt-1">จำลองผลลัพธ์การฝึกสอนโมเดล 5 Epochs</p>
+                        </div>
+
+                        <!-- Dashboard Stats -->
+                        <div class="grid grid-cols-3 gap-2 mb-6">
+                            <div class="bg-black/50 border border-gray-700 p-3 rounded-lg text-center">
+                                <span class="text-xs text-gray-500 block mb-1">Epoch</span>
+                                <span id="stat-epoch" class="text-xl font-bold text-white">0<span class="text-sm text-gray-600">/5</span></span>
+                            </div>
+                            <div class="bg-black/50 border border-gray-700 p-3 rounded-lg text-center transition-colors duration-500" id="loss-box">
+                                <span class="text-xs text-gray-500 block mb-1">Avg Loss</span>
+                                <span id="stat-loss" class="text-xl font-bold text-pytorch-red">---</span>
+                            </div>
+                            <div class="bg-black/50 border border-gray-700 p-3 rounded-lg text-center transition-colors duration-500" id="acc-box">
+                                <span class="text-xs text-gray-500 block mb-1">Accuracy</span>
+                                <span id="stat-acc" class="text-xl font-bold text-green-400">---%</span>
+                            </div>
+                        </div>
+
+                        <!-- Action Button -->
+                        <button onclick="startSimulation()" id="btn-start" class="w-full bg-pytorch-red hover:bg-orange-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-all transform active:scale-95 mb-4 flex justify-center items-center">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132A1 1 0 0014.752 11.168z"></path></svg>
+                            <span>Start Training Simulation</span>
+                        </button>
+
+                        <!-- Progress Bar -->
+                        <div class="w-full bg-gray-800 rounded-full h-2 mb-4 overflow-hidden border border-gray-700">
+                            <div id="progress-bar" class="bg-pytorch-red h-2 rounded-full progress-bar" style="width: 0%"></div>
+                        </div>
+
+                        <!-- Terminal Output Box -->
+                        <div class="bg-[#0a0a0a] border border-[#333] rounded-lg p-4 font-mono text-[11px] text-[#00ff00] h-[280px] overflow-y-auto leading-relaxed shadow-inner" id="terminal-output">
+                            > Ready to train model...<br>
+                            > Waiting for user to start.<span class="blinking-cursor">_</span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 mt-12 py-8 text-center text-sm text-gray-500">
+        <p>สร้างขึ้นสำหรับการเรียนรู้ PyTorch เบื้องต้น | ข้อมูลอ้างอิงจาก <a href="https://docs.pytorch.org/tutorials/beginner/basics/optimization_tutorial.html" class="text-pytorch-red hover:underline" target="_blank">PyTorch Documentation</a></p>
+    </footer>
+
+    <!-- Interactive Simulator Script -->
     <script>
-        document.querySelectorAll('.keyword[data-tooltip]').forEach(el => {
-            el.addEventListener('mouseenter', showTooltip);
-            el.addEventListener('mouseleave', hideTooltip);
-        });
+        // Syntax Highlighting
+        hljs.highlightAll();
+
+        // Simulator Logic
+        const terminal = document.getElementById('terminal-output');
+        const btnStart = document.getElementById('btn-start');
+        const progressBar = document.getElementById('progress-bar');
+        
+        const statEpoch = document.getElementById('stat-epoch');
+        const statLoss = document.getElementById('stat-loss');
+        const statAcc = document.getElementById('stat-acc');
+        const lossBox = document.getElementById('loss-box');
+        const accBox = document.getElementById('acc-box');
+
+        // ข้อมูลจำลองสำหรับ 5 Epochs (ลด Loss ลงเรื่อยๆ, เพิ่ม Acc เรื่อยๆ)
+        const mockData = [
+            { epoch: 1, acc: "52.1", avgLoss: "1.884242", startLoss: 2.16, endLoss: 1.88 },
+            { epoch: 2, acc: "63.5", avgLoss: "1.458921", startLoss: 1.88, endLoss: 1.45 },
+            { epoch: 3, acc: "71.2", avgLoss: "0.984512", startLoss: 1.45, endLoss: 0.98 },
+            { epoch: 4, acc: "78.4", avgLoss: "0.658241", startLoss: 0.98, endLoss: 0.65 },
+            { epoch: 5, acc: "84.9", avgLoss: "0.451248", startLoss: 0.65, endLoss: 0.45 }
+        ];
+
+        // Utility: สร้าง Promise สำหรับการหน่วงเวลา
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        // พิมพ์ข้อความลงใน Terminal
+        function logTerm(text, colorClass = "text-[#00ff00]") {
+            // ลบ cursor ออกจากอันเก่าก่อน
+            const innerHTML = terminal.innerHTML.replace('<span class="blinking-cursor">_</span>', '');
+            terminal.innerHTML = innerHTML + `<span class="${colorClass}">${text}</span><br><span class="blinking-cursor">_</span>`;
+            // เลื่อนจอลงอัตโนมัติ
+            terminal.scrollTop = terminal.scrollHeight;
+        }
+
+        async function startSimulation() {
+            if (btnStart.disabled) return;
+            
+            // เตรียม UI ก่อนเริ่ม
+            btnStart.disabled = true;
+            btnStart.classList.replace('bg-pytorch-red', 'bg-gray-600');
+            btnStart.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span>Training in progress...</span>';
+            terminal.innerHTML = '> Initialize Training Loop...<br><span class="blinking-cursor">_</span>';
+            progressBar.style.width = '0%';
+            
+            // รีเซ็ต Stats
+            statLoss.innerText = "---";
+            statAcc.innerText = "---%";
+            lossBox.classList.remove('border-pytorch-red');
+            accBox.classList.remove('border-green-400');
+
+            await sleep(800);
+
+            // วนลูปตามจำนวน Epoch
+            for (let i = 0; i < mockData.length; i++) {
+                const epochData = mockData[i];
+                statEpoch.innerHTML = `${epochData.epoch}<span class="text-sm text-gray-600">/5</span>`;
+                
+                logTerm(`Epoch ${epochData.epoch}`, "text-white font-bold mt-2");
+                logTerm(`-------------------------------`, "text-gray-500");
+
+                // จำลองกระบวนการ Train Batch (สุ่ม Print ความคืบหน้า)
+                let currentLoss = epochData.startLoss;
+                const lossStep = (epochData.startLoss - epochData.endLoss) / 6;
+
+                for (let batch = 0; batch <= 60000; batch += 10000) {
+                    await sleep(250); // ดีเลย์ให้ดูเหมือนกำลังประมวลผล
+                    
+                    // สุ่มการแกว่งของ Loss เล็กน้อย
+                    const jitter = (Math.random() - 0.5) * 0.1;
+                    const displayLoss = Math.max(0.1, currentLoss + jitter).toFixed(6);
+                    
+                    // format เลข batch
+                    const batchStr = String(batch).padStart(5, ' ');
+                    logTerm(`loss: ${displayLoss}  [${batchStr}/60000]`, "text-gray-300");
+                    
+                    currentLoss -= lossStep;
+                    
+                    // อัปเดต Progress Bar
+                    const progressPercent = ((i * 60000 + batch) / (5 * 60000)) * 100;
+                    progressBar.style.width = `${progressPercent}%`;
+                }
+
+                // จำลอง Validation / Test Loop
+                await sleep(400);
+                logTerm(`Test Error:`, "text-yellow-400 font-bold");
+                logTerm(` Accuracy: ${epochData.acc}%, Avg loss: ${epochData.avgLoss}`, "text-yellow-400");
+                
+                // อัปเดต Dashboard
+                statLoss.innerText = epochData.avgLoss;
+                statAcc.innerText = `${epochData.acc}%`;
+                
+                // กระพริบ Effect ที่ Dashboard
+                lossBox.classList.add('border-pytorch-red');
+                accBox.classList.add('border-green-400');
+                setTimeout(() => {
+                    lossBox.classList.remove('border-pytorch-red');
+                    accBox.classList.remove('border-green-400');
+                }, 300);
+
+                await sleep(600);
+            }
+
+            // เสร็จสิ้น
+            logTerm("Done!", "text-[#00ff00] font-bold mt-2 font-xl");
+            progressBar.style.width = '100%';
+            
+            // รีเซ็ตปุ่ม
+            btnStart.disabled = false;
+            btnStart.classList.replace('bg-gray-600', 'bg-pytorch-red');
+            btnStart.innerHTML = '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> <span>Run Simulation Again</span>';
+        }
     </script>
 </body>
 </html>

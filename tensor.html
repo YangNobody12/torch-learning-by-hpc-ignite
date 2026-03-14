@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Tensors - บทช่วยสอนภาษาไทย</title>
+    <!-- Tailwind CSS สำหรับการจัดรูปแบบ -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Sarabun:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Highlight.js สำหรับ Code Syntax Highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        pytorch: {
+                            red: '#EE4C2C',
+                            dark: '#1e1e1e',
+                            light: '#f8f9fa',
+                            code: '#282c34'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+        .code-block {
+            border-left: 4px solid #EE4C2C;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 0.5rem; /* ลด margin ลงเพื่อให้ชิดกับโมเดล */
+        }
+        /* เพิ่มคลาสสำหรับ Code block ที่มีผลลัพธ์ต่อท้าย */
+        .code-block.has-output {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid #333;
+        }
+        /* สไตล์ของกล่องผลลัพธ์ (Output) */
+        .output-block {
+            background-color: #0a0a0a;
+            border-left: 4px solid #4B5563;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            color: #9CA3AF;
+            margin-bottom: 0.5rem;
+            overflow-x: auto;
+        }
+        .output-label {
+            color: #6B7280;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+            user-select: none;
+            letter-spacing: 0.05em;
+        }
+        .prose h1, .prose h2, .prose h3 {
+            color: #ffffff;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+        .prose h1 { font-size: 2.25rem; font-weight: 700; color: #EE4C2C; }
+        .prose h2 { font-size: 1.8rem; font-weight: 600; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+        .prose h3 { font-size: 1.4rem; font-weight: 600; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.7; color: #b3b3b3; font-size: 1.05rem; }
+        .prose a { color: #60a5fa; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .prose strong { color: #e5e7eb; }
+        
+        /* สไตล์สำหรับ Canvas ของ Three.js */
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            position: relative;
+            background: radial-gradient(circle at center, #2a2a2a 0%, #121212 100%);
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 1px solid #333;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        
+        .dimension-btn {
+            transition: all 0.2s ease;
+        }
+        .dimension-btn.active {
+            background-color: #EE4C2C;
+            color: white;
+            border-color: #EE4C2C;
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #EE4C2C; }
+    </style>
+</head>
+<body class="antialiased selection:bg-pytorch-red selection:text-white flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-black/50 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- PyTorch Logo (SVG) -->
+                
+                <h1 class="text-xl font-bold text-white font-sans tracking-wide">PyTorch<span class="text-gray-400 font-light"> Basics</span></h1>
+            </div>
+            <nav class="flex flex-wrap justify-end gap-1">
+                <a href="index.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">5W1H</a>
+                <a href="tensor.html" class="text-sm font-medium text-pytorch-red bg-pytorch-red/10 px-3 py-2 rounded-md">Tensors</a>
+                <a href="datasets.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Datasets</a>
+                <a href="transforms.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Transforms</a>
+                <a href="buildmodel.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Build Model</a>
+                <a href="autograd.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Autograd</a>
+                <a href="optimization.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Optimization</a>
+                <a href="saveloadrun.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Save/Load</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            
+            <!-- Left Column: Content -->
+            <div class="lg:col-span-7 prose font-sans">
+                <h1>Tensors (เทนเซอร์)</h1>
+                <p>
+                    <strong>Tensors</strong> เป็นโครงสร้างข้อมูลพื้นฐานและเป็นหัวใจสำคัญของ PyTorch โดยมีลักษณะคล้ายกับอาร์เรย์ (arrays) หรือเมทริกซ์ (matrices) มาก 
+                    เราใช้เทนเซอร์เพื่อเข้ารหัสอินพุตและเอาต์พุตของโมเดล รวมถึงจัดเก็บพารามิเตอร์ของโมเดลด้วย
+                </p>
+
+                <div class="code-block bg-pytorch-code p-4 mb-6">
+                    <pre><code class="language-python">import torch
+import numpy as np</code></pre>
+                </div>
+
+                <h2>การสร้าง Tensor (Initializing a Tensor)</h2>
+                <p>เทนเซอร์สามารถสร้างขึ้นได้หลายวิธี ดังนี้:</p>
+
+                <h3>1. สร้างจากข้อมูลโดยตรง (Directly from data)</h3>
+                <p>เทนเซอร์สามารถสร้างขึ้นจากโครงสร้างข้อมูลแบบ List ของ Python ได้โดยตรง โดยชนิดข้อมูล (Data type) จะถูกประเมินโดยอัตโนมัติ</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">data = [[1, 2],[3, 4]]
+x_data = torch.tensor(data)
+print(x_data)</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>tensor([[1, 2],
+        [3, 4]])</pre>
+                </div>
+                <!-- Mini Canvas 1 -->
+                <div id="mini-tensor-1" class="h-48 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์: Matrix (Shape: [2, 2])</div>
+                </div>
+
+                <h3>2. สร้างจากเทนเซอร์อื่น และด้วยค่าสุ่ม</h3>
+                <p>เทนเซอร์ใหม่จะคงคุณสมบัติ (shape) ของเทนเซอร์เดิมเอาไว้ หรือเราสามารถใช้ <code>shape</code> ที่เป็น tuple กำหนดมิติได้</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">shape = (2,3,)
+rand_tensor = torch.rand(shape)
+ones_tensor = torch.ones(shape)
+zeros_tensor = torch.zeros(shape)
+
+print(f"Random Tensor: \n {rand_tensor} \n")
+print(f"Ones Tensor: \n {ones_tensor} \n")
+print(f"Zeros Tensor: \n {zeros_tensor}")</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>Random Tensor: 
+ tensor([[0.8823, 0.9150, 0.3829],
+        [0.9593, 0.3904, 0.6009]]) 
+
+Ones Tensor: 
+ tensor([[1., 1., 1.],
+        [1., 1., 1.]]) 
+
+Zeros Tensor: 
+ tensor([[0., 0., 0.],
+        [0., 0., 0.]])</pre>
+                </div>
+                <!-- Mini Canvas 2 -->
+                <div id="mini-tensor-2" class="h-48 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์: rand_tensor (Shape: [2, 3])</div>
+                </div>
+
+                <h2>คุณสมบัติของ Tensor (Attributes of a Tensor)</h2>
+                <p>คุณสมบัติของเทนเซอร์จะบอกรูปร่าง (shape), ชนิดข้อมูล (datatype), และอุปกรณ์ (device) ที่เทนเซอร์นั้นถูกจัดเก็บอยู่</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">tensor = torch.rand(3,4)
+
+print(f"Shape of tensor: {tensor.shape}")
+print(f"Datatype of tensor: {tensor.dtype}")
+print(f"Device tensor is stored on: {tensor.device}")</code></pre>
+                </div>
+                <div class="output-block mb-8">
+                    <div class="output-label">Output:</div>
+                    <pre>Shape of tensor: torch.Size([3, 4])
+Datatype of tensor: torch.float32
+Device tensor is stored on: cpu</pre>
+                </div>
+
+                <h2>การดำเนินการบน Tensor (Operations)</h2>
+                <p>PyTorch มีฟังก์ชันการดำเนินการทางคณิตศาสตร์ พีชคณิตเชิงเส้น ฯลฯ มากกว่า 100 แบบ ซึ่งสามารถคำนวณบน GPU ได้เพื่อความเร็วที่มากขึ้น</p>
+
+                <h3>การรวมเทนเซอร์ (Joining tensors)</h3>
+                <p>คุณสามารถใช้ <code>torch.cat</code> เพื่อนำเทนเซอร์มาต่อกันตามมิติที่กำหนด (dimension) คล้ายกับการต่อเลโก้</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">tensor = torch.ones(4, 4)
+tensor[:,1] = 0 # กำหนดให้คอลัมน์ที่ 1 (เริ่มนับจาก 0) มีค่าเป็น 0
+# นำ tensor ขนาด 4x4 มาต่อกัน 3 อันในแกนที่ 1 (แนวนอน)
+t1 = torch.cat([tensor, tensor, tensor], dim=1) 
+print(t1)</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>tensor([[1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.],
+        [1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.],
+        [1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.],
+        [1., 0., 1., 1., 1., 0., 1., 1., 1., 0., 1., 1.]])</pre>
+                </div>
+                <!-- Mini Canvas 3 -->
+                <div id="mini-tensor-3" class="h-56 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์: t1 (Shape: [4, 12]) นำ 4x4 มาต่อกัน 3 ชุด</div>
+                </div>
+
+                <h3>การดำเนินการทางคณิตศาสตร์ (Arithmetic operations)</h3>
+                <p>ตัวอย่างการคูณแบบสมาชิกต่อสมาชิก (Element-wise product)</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python"># z1, z2, z3 จะได้ผลลัพธ์เหมือนกัน
+z1 = tensor * tensor
+z2 = tensor.mul(tensor)
+
+print(z1)</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>tensor([[1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.]])</pre>
+                </div>
+                <!-- Mini Canvas 4 -->
+                <div id="mini-tensor-4" class="h-48 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์: Element-wise (Shape: [4, 4])</div>
+                </div>
+
+                <h3>การทำ Indexing และ Slicing</h3>
+                <p>คุณสามารถดึงข้อมูลแบบเดียวกับการใช้ NumPy (Standard numpy-like indexing and slicing) ได้เลย</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">tensor = torch.ones(4, 4)
+print(f"First row: {tensor[0]}")
+print(f"First column: {tensor[:, 0]}")
+print(f"Last column: {tensor[..., -1]}")
+tensor[:,1] = 0
+print(tensor)</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>First row: tensor([1., 1., 1., 1.])
+First column: tensor([1., 1., 1., 1.])
+Last column: tensor([1., 1., 1., 1.])
+tensor([[1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.]])</pre>
+                </div>
+                <!-- Mini Canvas 5 -->
+                <div id="mini-tensor-5" class="h-48 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์หลัง Slicing: (Shape: [4, 4])</div>
+                </div>
+
+                <h3>เทนเซอร์แบบสมาชิกเดียว (Single-element tensors)</h3>
+                <p>หากคุณใช้ฟังก์ชันรวมค่าเทนเซอร์จนเหลือเพียงค่าเดียว (เช่น การหาผลรวม) คุณสามารถแปลงกลับเป็นตัวเลข Python ธรรมดาได้โดยใช้ <code>item()</code></p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">agg = tensor.sum()
+agg_item = agg.item()
+print(agg_item, type(agg_item))</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>12.0 &lt;class 'float'&gt;</pre>
+                </div>
+                <!-- Mini Canvas 6 -->
+                <div id="mini-tensor-6" class="h-32 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์: Scalar Value (Shape: [1])</div>
+                </div>
+
+                <h3>การดำเนินการแบบ In-place</h3>
+                <p>การดำเนินการใดๆ ที่บันทึกผลลัพธ์ทับตัวแปรเดิม (In-place) จะมีเครื่องหมาย <code>_</code> ต่อท้าย เช่น <code>x.copy_(y)</code> หรือ <code>x.t_()</code> ฟังก์ชันเหล่านี้จะเปลี่ยนค่า <code>x</code> ทันที</p>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">print(f"{tensor} \n")
+tensor.add_(5)
+print(f"{tensor}")</code></pre>
+                </div>
+                <div class="output-block mb-8">
+                    <div class="output-label">Output:</div>
+                    <pre>tensor([[1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.],
+        [1., 0., 1., 1.]]) 
+
+tensor([[6., 5., 6., 6.],
+        [6., 5., 6., 6.],
+        [6., 5., 6., 6.],
+        [6., 5., 6., 6.]])</pre>
+                </div>
+
+                <h2>การเชื่อมต่อกับ NumPy (Bridge with NumPy)</h2>
+                <p>เทนเซอร์ที่อยู่บน CPU และอาร์เรย์ของ NumPy สามารถ <strong>แชร์ตำแหน่งหน่วยความจำเดียวกันได้</strong> หมายความว่าการเปลี่ยนค่าในฝั่งใดฝั่งหนึ่งจะส่งผลให้อีกฝั่งเปลี่ยนตามไปด้วย</p>
+
+                <h3>1. แปลง Tensor เป็น NumPy array</h3>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">t = torch.ones(5)
+n = t.numpy()
+
+# การเปลี่ยนแปลงที่ tensor `t` จะส่งผลไปถึงอาร์เรย์ `n` ด้วย
+t.add_(1)
+print(f"t: {t}") # tensor([2., 2., 2., 2., 2.])
+print(f"n: {n}") # [2. 2. 2. 2. 2.]</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>t: tensor([2., 2., 2., 2., 2.])
+n: [2. 2. 2. 2. 2.]</pre>
+                </div>
+                <!-- Mini Canvas 7 -->
+                <div id="mini-tensor-7" class="h-32 w-full bg-black/30 rounded-lg mb-8 border border-gray-800 relative overflow-hidden cursor-move">
+                    <div class="absolute top-2 left-2 text-xs text-gray-300 font-mono z-10 bg-black/60 px-2 py-1 rounded backdrop-blur-sm">ผลลัพธ์: 1D Array Shared Memory (Shape: [5])</div>
+                </div>
+
+                <h3>2. แปลง NumPy array เป็น Tensor</h3>
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">n = np.ones(5)
+t = torch.from_numpy(n)
+
+# การเปลี่ยนแปลงที่ NumPy array `n` จะส่งผลไปถึง tensor `t` ด้วย
+np.add(n, 1, out=n)
+print(f"t: {t}")
+print(f"n: {n}")</code></pre>
+                </div>
+                <div class="output-block mb-8">
+                    <div class="output-label">Output:</div>
+                    <pre>t: tensor([2., 2., 2., 2., 2.], dtype=torch.float64)
+n: [2. 2. 2. 2. 2.]</pre>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Interactive Main 3D Model -->
+            <div class="lg:col-span-5 relative hidden lg:block">
+                <!-- Sticky Container for Desktop -->
+                <div class="sticky top-24 flex flex-col items-center">
+                    
+                    <div class="w-full text-center mb-4">
+                        <h2 class="text-xl font-bold text-white tracking-wide">โมเดลอิสระสำหรับทดลอง</h2>
+                        <p class="text-sm text-gray-400 mt-1">ใช้เมาส์คลิกเพื่อหมุนและซูม</p>
+                    </div>
+
+                    <!-- Three.js Canvas Container -->
+                    <div id="canvas-container" class="aspect-square lg:aspect-auto lg:h-[450px]">
+                        <!-- Canvas will be injected here by Three.js -->
+                    </div>
+
+                    <!-- Controls for 3D Model -->
+                    <div class="bg-gray-800 p-2 rounded-xl mt-6 flex space-x-2 border border-gray-700 shadow-lg">
+                        <button class="dimension-btn active px-4 py-2 rounded-lg font-medium text-sm text-gray-300 border border-transparent hover:bg-gray-700" onclick="changeDimension(1, this)">
+                            1D (Vector)
+                        </button>
+                        <button class="dimension-btn px-4 py-2 rounded-lg font-medium text-sm text-gray-300 border border-transparent hover:bg-gray-700" onclick="changeDimension(2, this)">
+                            2D (Matrix)
+                        </button>
+                        <button class="dimension-btn px-4 py-2 rounded-lg font-medium text-sm text-gray-300 border border-transparent hover:bg-gray-700" onclick="changeDimension(3, this)">
+                            3D (Tensor)
+                        </button>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 w-full">
+                        <h4 class="text-pytorch-red font-semibold mb-2" id="desc-title">1D Tensor (Vector)</h4>
+                        <p class="text-sm text-gray-300" id="desc-text">มีลักษณะคล้ายอาร์เรย์ (Array) ในมิติเดียว มีเพียงแกนเดียว (Shape: [3]) ใช้เก็บชุดข้อมูลต่อเนื่องกัน</p>
+                        <div class="mt-3 font-mono text-xs text-gray-400 bg-black/40 p-2 rounded">
+                            <span id="desc-code">torch.tensor([1, 2, 3])</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 mt-12 py-8 text-center text-sm text-gray-500">
+        <p>สร้างขึ้นสำหรับการเรียนรู้ PyTorch เบื้องต้น | ข้อมูลอ้างอิงจาก <a href="https://docs.pytorch.org/tutorials/beginner/basics/tensorqs_tutorial.html" class="text-pytorch-red hover:underline" target="_blank">PyTorch Documentation</a></p>
+    </footer>
+
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script>
+        // Initialize Syntax Highlighting
+        hljs.highlightAll();
+
+        // --------------------------------------------------------
+        // Main 3D Tensor Visualization (Right Panel)
+        // --------------------------------------------------------
+        const container = document.getElementById('canvas-container');
+        let scene, camera, renderer, controls, tensorGroup;
+
+        // ข้อมูลสำหรับอธิบายมิติแต่ละแบบ
+        const descriptions = {
+            1: {
+                title: "1D Tensor (Vector)",
+                text: "มีลักษณะคล้ายอาร์เรย์ (Array) ในมิติเดียว มีเพียงแกนเดียว (Shape: [3]) เช่น ข้อมูลอนุกรมเวลา (Time Series) ง่ายๆ",
+                code: "torch.tensor([1, 2, 3])"
+            },
+            2: {
+                title: "2D Tensor (Matrix)",
+                text: "โครงสร้างแบบกริดที่มี 2 แกน (แถว x คอลัมน์) (Shape: [3, 3]) นิยมใช้เก็บข้อมูลตาราง หรือ รูปภาพแบบขาวดำ",
+                code: "torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]])"
+            },
+            3: {
+                title: "3D Tensor",
+                text: "โครงสร้างลูกบาศก์ที่มี 3 แกน (ลึก x แถว x คอลัมน์) (Shape: [3, 3, 3]) นิยมใช้เก็บรูปภาพสี (Channels, Height, Width) หรือลำดับของเมทริกซ์",
+                code: "torch.rand(3, 3, 3)"
+            }
+        };
+
+        function init3D() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(5, 4, 7);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+            
+            const pointLight = new THREE.PointLight(0xEE4C2C, 2, 50);
+            pointLight.position.set(-5, -5, 5);
+            scene.add(pointLight);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 1.5;
+            controls.enablePan = false;
+            controls.minDistance = 3;
+            controls.maxDistance = 15;
+
+            tensorGroup = new THREE.Group();
+            scene.add(tensorGroup);
+
+            drawTensor(1); // Default to 1D
+
+            window.addEventListener('resize', onWindowResize, false);
+            animate();
+        }
+
+        function drawTensor(dimensions) {
+            while(tensorGroup.children.length > 0){ tensorGroup.remove(tensorGroup.children[0]); }
+
+            const size = 0.9;
+            const spacing = 1.05;
+            const baseColor = 0xEE4C2C; 
+
+            const xCount = dimensions >= 1 ? 3 : 1; 
+            const yCount = dimensions >= 2 ? 3 : 1; 
+            const zCount = dimensions >= 3 ? 3 : 1; 
+
+            const geometry = new THREE.BoxGeometry(size, size, size);
+            const material = new THREE.MeshPhysicalMaterial({
+                color: baseColor, metalness: 0.1, roughness: 0.4, transparent: true, opacity: 0.85, clearcoat: 0.8
+            });
+            const edgesMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
+
+            for(let x = 0; x < xCount; x++) {
+                for(let y = 0; y < yCount; y++) {
+                    for(let z = 0; z < zCount; z++) {
+                        const cube = new THREE.Mesh(geometry, material);
+                        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgesMaterial);
+                        cube.add(edges);
+
+                        cube.position.x = (x - (xCount - 1) / 2) * spacing;
+                        cube.position.y = -(y - (yCount - 1) / 2) * spacing; 
+                        cube.position.z = (z - (zCount - 1) / 2) * spacing;
+
+                        cube.scale.set(0.01, 0.01, 0.01);
+                        tensorGroup.add(cube);
+                    }
+                }
+            }
+
+            let scale = 0;
+            const animateIn = () => {
+                scale += (1 - scale) * 0.1;
+                tensorGroup.children.forEach(c => c.scale.set(scale, scale, scale));
+                if(scale < 0.99) requestAnimationFrame(animateIn);
+                else tensorGroup.children.forEach(c => c.scale.set(1, 1, 1));
+            };
+            animateIn();
+        }
+
+        function onWindowResize() {
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+
+        window.changeDimension = function(dim, buttonElement) {
+            document.querySelectorAll('.dimension-btn').forEach(btn => btn.classList.remove('active'));
+            buttonElement.classList.add('active');
+            drawTensor(dim);
+            document.getElementById('desc-title').innerText = descriptions[dim].title;
+            document.getElementById('desc-text').innerText = descriptions[dim].text;
+            document.getElementById('desc-code').innerText = descriptions[dim].code;
+            
+            if(dim === 1) camera.position.set(0, 0, 6);
+            if(dim === 2) camera.position.set(0, 0, 7);
+            if(dim === 3) camera.position.set(5, 4, 7);
+        }
+
+        // --------------------------------------------------------
+        // Mini Tensor Visualizations (In-Text)
+        // --------------------------------------------------------
+        function createMiniTensorDisplay(containerId, shape, colorHex) {
+            const minicontainer = document.getElementById(containerId);
+            if(!minicontainer) return;
+
+            const miniScene = new THREE.Scene();
+            const miniCamera = new THREE.PerspectiveCamera(40, minicontainer.clientWidth / minicontainer.clientHeight, 0.1, 100);
+            
+            const miniRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            miniRenderer.setSize(minicontainer.clientWidth, minicontainer.clientHeight);
+            miniRenderer.setPixelRatio(window.devicePixelRatio);
+            minicontainer.appendChild(miniRenderer.domElement);
+
+            miniScene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const miniDirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            miniDirLight.position.set(5, 10, 5);
+            miniScene.add(miniDirLight);
+
+            const miniGroup = new THREE.Group();
+            miniScene.add(miniGroup);
+
+            // คำนวณแกนตาม Shape (เช่น [2, 3] -> y=2, x=3)
+            const zCount = shape.length === 3 ? shape[0] : 1;
+            const yCount = shape.length >= 2 ? shape[shape.length - 2] : 1;
+            const xCount = shape[shape.length - 1];
+
+            const size = 0.9;
+            const spacing = 1.05;
+            const geometry = new THREE.BoxGeometry(size, size, size);
+            const material = new THREE.MeshPhysicalMaterial({ 
+                color: colorHex, metalness: 0.1, roughness: 0.4, transparent: true, opacity: 0.9 
+            });
+            const edgesMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 });
+
+            for(let z=0; z<zCount; z++) {
+                for(let y=0; y<yCount; y++) {
+                    for(let x=0; x<xCount; x++) {
+                        const cube = new THREE.Mesh(geometry, material);
+                        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geometry), edgesMat);
+                        cube.add(edges);
+                        
+                        cube.position.x = (x - (xCount - 1) / 2) * spacing;
+                        cube.position.y = -(y - (yCount - 1) / 2) * spacing;
+                        cube.position.z = (z - (zCount - 1) / 2) * spacing;
+                        miniGroup.add(cube);
+                    }
+                }
+            }
+
+            // จัดตำแหน่งกล้องอัตโนมัติตามขนาดของ Tensor
+            const maxDim = Math.max(xCount, yCount, zCount);
+            miniCamera.position.z = maxDim * 1.2 + 2; // ถอยกล้องตามความกว้าง
+            miniCamera.position.y = maxDim * 0.3;
+            miniCamera.position.x = maxDim * 0.3;
+            miniCamera.lookAt(0, 0, 0);
+
+            // เพิ่ม OrbitControls ให้ผู้ใช้หมุนเล่นได้
+            const miniControls = new THREE.OrbitControls(miniCamera, miniRenderer.domElement);
+            miniControls.enableDamping = true;
+            miniControls.dampingFactor = 0.05;
+            miniControls.autoRotate = true;
+            miniControls.autoRotateSpeed = 1.0;
+            miniControls.enableZoom = false; // ปิดซูมเพื่อไม่ให้รบกวนการเลื่อนหน้าเว็บ
+
+            const animateMini = () => {
+                requestAnimationFrame(animateMini);
+                miniControls.update();
+                miniRenderer.render(miniScene, miniCamera);
+            };
+            animateMini();
+            
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                miniCamera.aspect = minicontainer.clientWidth / minicontainer.clientHeight;
+                miniCamera.updateProjectionMatrix();
+                miniRenderer.setSize(minicontainer.clientWidth, minicontainer.clientHeight);
+            });
+        }
+
+        // Initialize Everything when DOM is ready
+        window.onload = () => {
+            init3D(); // เริ่มต้นโมเดลใหญ่ด้านขวา
+            
+            // เริ่มต้นโมเดลย่อยใต้โค้ด (กำหนด Container ID, Shape, Hex Color)
+            createMiniTensorDisplay('mini-tensor-1', [2, 2], 0xEE4C2C); // สีส้มแดง PyTorch
+            createMiniTensorDisplay('mini-tensor-2', [2, 3], 0x3B82F6); // สีน้ำเงิน
+            createMiniTensorDisplay('mini-tensor-3', [4, 12], 0x10B981); // สีเขียว (Concat ขยายแนวยาว)
+            createMiniTensorDisplay('mini-tensor-4', [4, 4], 0x8B5CF6); // สีม่วง
+            createMiniTensorDisplay('mini-tensor-5', [4, 4], 0xEC4899); // สีชมพู (Indexing/Slicing)
+            createMiniTensorDisplay('mini-tensor-6', [1], 0xEAB308); // สีเหลือง (Single element)
+            createMiniTensorDisplay('mini-tensor-7', [5], 0x06B6D4); // สีฟ้า (NumPy Bridge)
+        };
+
+    </script>
+</body>
+</html>

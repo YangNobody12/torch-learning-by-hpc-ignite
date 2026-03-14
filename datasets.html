@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PyTorch Datasets & DataLoaders</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Sarabun:wght@300;400;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Highlight.js -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/languages/python.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        pytorch: {
+                            red: '#EE4C2C',
+                            dark: '#1e1e1e',
+                            light: '#f8f9fa',
+                            code: '#282c34'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #121212; color: #e0e0e0; }
+        .code-block {
+            border-left: 4px solid #EE4C2C;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        .code-block.has-output {
+            border-bottom-left-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-bottom: 0;
+            border-bottom: 1px solid #333;
+        }
+        .output-block {
+            background-color: #0a0a0a;
+            border-left: 4px solid #4B5563;
+            border-bottom-left-radius: 0.5rem;
+            border-bottom-right-radius: 0.5rem;
+            padding: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.875rem;
+            color: #9CA3AF;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+        .output-label { color: #6B7280; font-size: 0.75rem; margin-bottom: 0.5rem; user-select: none; letter-spacing: 0.05em; }
+        
+        .prose h1, .prose h2, .prose h3 { color: #ffffff; margin-top: 2rem; margin-bottom: 1rem; }
+        .prose h1 { font-size: 2.25rem; font-weight: 700; color: #EE4C2C; }
+        .prose h2 { font-size: 1.8rem; font-weight: 600; border-bottom: 1px solid #333; padding-bottom: 0.5rem; }
+        .prose h3 { font-size: 1.4rem; font-weight: 600; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.7; color: #b3b3b3; font-size: 1.05rem; }
+        .prose a { color: #60a5fa; text-decoration: none; }
+        .prose a:hover { text-decoration: underline; }
+        .prose strong { color: #e5e7eb; }
+
+        /* Animation Data Item Styles */
+        .data-item {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .data-item.processing {
+            transform: scale(1.1) translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(238, 76, 44, 0.4);
+            border-color: #EE4C2C;
+            z-index: 10;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #EE4C2C; }
+    </style>
+</head>
+<body class="antialiased selection:bg-pytorch-red selection:text-white flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-black/50 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <!-- PyTorch Logo -->
+                
+                <h1 class="text-xl font-bold text-white font-sans tracking-wide">PyTorch<span class="text-gray-400 font-light"> Basics</span></h1>
+            </div>
+            <nav class="flex flex-wrap justify-end gap-1">
+                <a href="index.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">5W1H</a>
+                <a href="tensor.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Tensors</a>
+                <a href="datasets.html" class="text-sm font-medium text-pytorch-red bg-pytorch-red/10 px-3 py-2 rounded-md">Datasets</a>
+                <a href="transforms.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Transforms</a>
+                <a href="buildmodel.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Build Model</a>
+                <a href="autograd.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Autograd</a>
+                <a href="optimization.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Optimization</a>
+                <a href="saveloadrun.html" class="text-sm font-medium text-gray-400 hover:text-white px-3 py-2 transition-colors rounded-md hover:bg-gray-800">Save/Load</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
+        
+        <!-- INTRO KEY CONCEPT BLOCK -->
+        <div class="bg-gradient-to-r from-gray-900 to-gray-800 border border-pytorch-red/30 rounded-2xl p-6 md:p-8 mb-12 shadow-lg relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-pytorch-red/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
+            
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4 flex items-center">
+                <svg class="w-8 h-8 mr-3 text-pytorch-red" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                Key Concept: ทำไมต้องมี Dataset และ DataLoader?
+            </h2>
+            <p class="text-gray-300 text-lg leading-relaxed mb-6 max-w-4xl">
+                ใน Machine Learning การจัดการข้อมูลมักจะมีความซับซ้อนและเขียนโค้ดยาก PyTorch จึงออกแบบให้เรา <strong>แยกโค้ดส่วนเตรียมข้อมูล (Data Handling) ออกจากโค้ดส่วนฝึกสอนโมเดล (Model Training)</strong> เพื่อให้อ่านง่ายและนำไปใช้ซ้ำได้ โดยใช้ 2 หัวใจหลัก:
+            </p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-black/40 border border-gray-700 p-5 rounded-xl">
+                    <h3 class="text-xl font-bold text-pytorch-red mb-2">1. Dataset (คลังข้อมูล)</h3>
+                    <p class="text-gray-400 text-sm">ทำหน้าที่เก็บตัวอย่างข้อมูล (Features) และคำตอบ (Labels) โดย <code>Dataset</code> จะรู้วิธีดึงข้อมูลออกมา <strong>"ทีละ 1 รายการ"</strong></p>
+                </div>
+                <div class="bg-black/40 border border-gray-700 p-5 rounded-xl">
+                    <h3 class="text-xl font-bold text-pytorch-red mb-2">2. DataLoader (พนักงานส่งข้อมูล)</h3>
+                    <p class="text-gray-400 text-sm">รับข้อมูลมาจาก Dataset แล้วนำมา <strong>"มัดรวมเป็นกลุ่ม (Batch)"</strong>, ทำการสับเปลี่ยน (Shuffle), และโหลดแบบคู่ขนาน (Multiprocessing) เพื่อป้อนให้โมเดลแบบรวดเร็ว</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
+            <!-- Left Column: Content -->
+            <div class="lg:col-span-7 prose font-sans">
+                
+                <h2>การโหลด Dataset ตัวอย่าง</h2>
+                <p>
+                    PyTorch มีไลบรารีเฉพาะทางมากมาย เช่น <code>TorchVision</code>, <code>TorchText</code>, และ <code>TorchAudio</code> ที่มาพร้อมกับ Dataset มาตรฐานให้เราลองใช้
+                    ในตัวอย่างนี้เราจะโหลด <strong>Fashion-MNIST</strong> ซึ่งเป็นชุดข้อมูลภาพเสื้อผ้าขาวดำขนาด 28x28 พิกเซล
+                </p>
+
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">import torch
+from torch.utils.data import Dataset
+from torchvision import datasets
+from torchvision.transforms import ToTensor
+import matplotlib.pyplot as plt
+
+# ดาวน์โหลดข้อมูลสำหรับ Training
+training_data = datasets.FashionMNIST(
+    root="data",
+    train=True,
+    download=True,
+    transform=ToTensor()
+)
+
+# ดาวน์โหลดข้อมูลสำหรับ Testing
+test_data = datasets.FashionMNIST(
+    root="data",
+    train=False,
+    download=True,
+    transform=ToTensor()
+)</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>Downloading http://fashion-mnist.s3-website.eu-central-1.amazonaws.com/train-images-idx3-ubyte.gz
+...
+Extracting data/FashionMNIST/raw/t10k-labels-idx1-ubyte.gz to data/FashionMNIST/raw</pre>
+                </div>
+
+                <h2>การวนลูป (Iterating) และแสดงผล Dataset</h2>
+                <p>เราสามารถดึงข้อมูลจาก <code>Dataset</code> ออกมาดูทีละภาพได้เหมือนการเข้าถึง List ใน Python (เช่น <code>training_data[index]</code>)</p>
+
+                <div class="code-block bg-pytorch-code p-4">
+                    <pre><code class="language-python">labels_map = {
+    0: "T-Shirt", 1: "Trouser", 2: "Pullover", 3: "Dress", 4: "Coat",
+    5: "Sandal", 6: "Shirt", 7: "Sneaker", 8: "Bag", 9: "Ankle Boot",
+}
+figure = plt.figure(figsize=(8, 8))
+cols, rows = 3, 3
+
+for i in range(1, cols * rows + 1):
+    sample_idx = torch.randint(len(training_data), size=(1,)).item()
+    img, label = training_data[sample_idx]
+    
+    figure.add_subplot(rows, cols, i)
+    plt.title(labels_map[label])
+    plt.axis("off")
+    plt.imshow(img.squeeze(), cmap="gray")
+    
+plt.show()</code></pre>
+                </div>
+                <p class="text-sm italic text-gray-500 mb-8">* ผลลัพธ์ที่ได้จะเป็นหน้าต่างกราฟฟิกของ matplotlib แสดงรูปภาพเสื้อผ้าแบบสุ่ม 9 รูปพร้อมชื่อ</p>
+
+
+                <h2>การสร้าง Dataset ของตัวเอง (Custom Dataset)</h2>
+                <p>ในความเป็นจริง เรามักจะมีข้อมูลของเราเอง คลาส Dataset แบบกำหนดเอง (Custom Dataset class) จำเป็นต้องมีฟังก์ชันหลัก 3 ตัวนี้เสมอ (<code>__init__</code>, <code>__len__</code>, และ <code>__getitem__</code>):</p>
+
+                <div class="code-block bg-pytorch-code p-4">
+                    <pre><code class="language-python">import os
+import pandas as pd
+from torchvision.io import read_image
+
+class CustomImageDataset(Dataset):
+    # 1. ทำงานครั้งแรกตอนสร้าง Object (ตั้งค่าต่างๆ)
+    def __init__(self, annotations_file, img_dir, transform=None, target_transform=None):
+        self.img_labels = pd.read_csv(annotations_file)
+        self.img_dir = img_dir
+        self.transform = transform
+        self.target_transform = target_transform
+
+    # 2. คืนค่าจำนวนตัวอย่างทั้งหมดใน Dataset
+    def __len__(self):
+        return len(self.img_labels)
+
+    # 3. โหลดและคืนค่า ข้อมูล (image) และ คำตอบ (label) ณ ตำแหน่ง idx
+    def __getitem__(self, idx):
+        img_path = os.path.join(self.img_dir, self.img_labels.iloc[idx, 0])
+        image = read_image(img_path)
+        label = self.img_labels.iloc[idx, 1]
+        
+        if self.transform:     image = self.transform(image)
+        if self.target_transform: label = self.target_transform(label)
+            
+        return image, label</code></pre>
+                </div>
+
+                <h2>การเตรียมข้อมูลสำหรับสอนด้วย DataLoader</h2>
+                <p>
+                    <code>Dataset</code> ดึงข้อมูลให้เราได้ครั้งละ 1 รายการ แต่เวลาเราสอนโมเดล (Train Model) เราต้องการดึงข้อมูล <strong>เป็นกลุ่มย่อย (Minibatches)</strong> 
+                    และต้องการ <strong>สับเปลี่ยนข้อมูล (Shuffle)</strong> ในทุกๆ รอบ (Epoch) เพื่อไม่ให้โมเดลจำข้อสอบ 
+                    <code>DataLoader</code> คือ API ที่จัดการเรื่องน่าปวดหัวเหล่านี้ให้เราง่ายๆ ในบรรทัดเดียว
+                </p>
+
+                <div class="code-block bg-pytorch-code p-4 has-output">
+                    <pre><code class="language-python">from torch.utils.data import DataLoader
+
+# สร้าง DataLoader
+# batch_size=64 หมายถึงดึงข้อมูลมาทีละ 64 ภาพต่อ 1 ครั้ง
+train_dataloader = DataLoader(training_data, batch_size=64, shuffle=True)
+test_dataloader = DataLoader(test_data, batch_size=64, shuffle=True)
+
+# ลองวนลูปเพื่อดูข้อมูล 1 Batch
+train_features, train_labels = next(iter(train_dataloader))
+
+print(f"Feature batch shape: {train_features.size()}")
+print(f"Labels batch shape: {train_labels.size()}")
+
+img = train_features[0].squeeze()
+label = train_labels[0]
+print(f"Label: {label}")</code></pre>
+                </div>
+                <div class="output-block">
+                    <div class="output-label">Output:</div>
+                    <pre>Feature batch shape: torch.Size([64, 1, 28, 28])
+Labels batch shape: torch.Size([64])
+Label: 5</pre>
+                </div>
+                <p>ในผลลัพธ์ <code>[64, 1, 28, 28]</code> หมายความว่า: 64 ภาพ, 1 Channel (ขาวดำ), สูง 28, กว้าง 28 พิกเซล</p>
+
+            </div>
+
+            <!-- Right Column: Interactive Simulator -->
+            <div class="lg:col-span-5 relative hidden lg:block">
+                <div class="sticky top-24">
+                    
+                    <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-2xl">
+                        <div class="text-center mb-6">
+                            <h2 class="text-xl font-bold text-white tracking-wide">DataLoader Simulator</h2>
+                            <p class="text-sm text-gray-400 mt-1">จำลองการดึงข้อมูลทีละ Batch</p>
+                        </div>
+
+                        <!-- Dataset Area -->
+                        <div class="mb-6">
+                            <div class="flex justify-between items-end mb-2">
+                                <span class="text-sm font-semibold text-pytorch-red">1. Dataset (คลังข้อมูลทั้งหมด)</span>
+                                <span class="text-xs text-gray-500" id="dataset-count">รวม: 24 items</span>
+                            </div>
+                            <div class="bg-black/50 border border-gray-700 p-4 rounded-xl min-h-[160px]">
+                                <!-- Grid of Data Items -->
+                                <div id="dataset-pool" class="grid grid-cols-6 gap-2">
+                                    <!-- JS will populate this -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow Down -->
+                        <div class="flex justify-center my-2 text-gray-600">
+                            <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        </div>
+
+                        <!-- DataLoader Configuration -->
+                        <div class="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-6 flex items-center justify-between">
+                            <div>
+                                <h4 class="text-white text-sm font-semibold mb-1">2. DataLoader Config</h4>
+                                <div class="flex items-center space-x-2 text-xs">
+                                    <span class="text-gray-400">Batch Size:</span>
+                                    <select id="batch-size-select" class="bg-black border border-gray-600 text-white rounded p-1 outline-none">
+                                        <option value="4">4</option>
+                                        <option value="8" selected>8</option>
+                                        <option value="12">12</option>
+                                    </select>
+                                    <span class="text-gray-400 ml-2">Shuffle: <span class="text-green-400">True</span></span>
+                                </div>
+                            </div>
+                            <button id="load-btn" onclick="loadNextBatch()" class="bg-pytorch-red hover:bg-orange-600 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors shadow-lg">
+                                Next Batch
+                            </button>
+                        </div>
+
+                        <!-- Arrow Down -->
+                        <div class="flex justify-center my-2 text-gray-600">
+                            <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                        </div>
+
+                        <!-- Model Input Area (Batch Output) -->
+                        <div>
+                            <span class="text-sm font-semibold text-blue-400 mb-2 block">3. เตรียมป้อนให้ Model (1 Batch)</span>
+                            <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl min-h-[100px] flex items-center justify-center">
+                                <div id="batch-output" class="flex flex-wrap gap-2 justify-center">
+                                    <span class="text-gray-500 text-sm italic">รอการกด Next Batch...</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-black/40 rounded-lg text-xs text-gray-400 font-mono" id="log-output">
+                            > DataLoader Standby...
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-gray-800 mt-12 py-8 text-center text-sm text-gray-500">
+        <p>สร้างขึ้นสำหรับการเรียนรู้ PyTorch เบื้องต้น | ข้อมูลอ้างอิงจาก <a href="https://docs.pytorch.org/tutorials/beginner/basics/data_tutorial.html" class="text-pytorch-red hover:underline" target="_blank">PyTorch Documentation</a></p>
+    </footer>
+
+    <!-- Interactive Simulator Script -->
+    <script>
+        // Syntax Highlighting
+        hljs.highlightAll();
+
+        // Simulator Logic
+        const datasetPool = document.getElementById('dataset-pool');
+        const batchOutput = document.getElementById('batch-output');
+        const logOutput = document.getElementById('log-output');
+        const batchSizeSelect = document.getElementById('batch-size-select');
+        
+        const TOTAL_ITEMS = 24;
+        const CATEGORIES = ['T-Shirt', 'Trouser', 'Pullover', 'Dress', 'Coat', 'Sneaker', 'Bag'];
+        const COLORS = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4'];
+
+        let allData = [];
+
+        // Initialize Dataset
+        function initDataset() {
+            datasetPool.innerHTML = '';
+            allData = [];
+            for (let i = 0; i < TOTAL_ITEMS; i++) {
+                const catIdx = Math.floor(Math.random() * CATEGORIES.length);
+                const item = {
+                    id: i,
+                    label: CATEGORIES[catIdx],
+                    color: COLORS[catIdx]
+                };
+                allData.push(item);
+
+                // Create DOM Element
+                const el = document.createElement('div');
+                el.className = 'data-item w-full aspect-square rounded flex items-center justify-center text-[10px] font-bold text-white border border-gray-600 opacity-80';
+                el.style.backgroundColor = item.color;
+                el.innerText = item.label[0]; // Just show first letter
+                el.title = `Index: ${i} | Label: ${item.label}`;
+                el.id = `data-item-${i}`;
+                datasetPool.appendChild(el);
+            }
+        }
+
+        // Load Batch Function
+        function loadNextBatch() {
+            const batchSize = parseInt(batchSizeSelect.value);
+            
+            // 1. Clear old batch
+            batchOutput.innerHTML = '';
+            document.querySelectorAll('.data-item').forEach(el => {
+                el.classList.remove('processing');
+                el.style.opacity = '0.8';
+            });
+
+            // 2. Simulate Shuffle & Pick (Random selection without replacement in this single pull)
+            let shuffledIndices = [...Array(TOTAL_ITEMS).keys()].sort(() => 0.5 - Math.random());
+            let selectedIndices = shuffledIndices.slice(0, batchSize);
+
+            // 3. Highlight in Dataset
+            selectedIndices.forEach(idx => {
+                const el = document.getElementById(`data-item-${idx}`);
+                el.classList.add('processing');
+                el.style.opacity = '1';
+            });
+
+            // 4. Move to Batch Area
+            selectedIndices.forEach((idx, i) => {
+                setTimeout(() => {
+                    const item = allData[idx];
+                    const batchEl = document.createElement('div');
+                    batchEl.className = 'w-10 h-10 rounded shadow-md flex items-center justify-center text-xs font-bold text-white border-2 border-white/20 animate-pulse';
+                    batchEl.style.backgroundColor = item.color;
+                    batchEl.innerText = item.label[0];
+                    batchEl.title = item.label;
+                    batchOutput.appendChild(batchEl);
+                }, i * 150); // Staggered animation
+            });
+
+            // Update Log
+            logOutput.innerText = `> dataloader = iter(DataLoader)\n> features, labels = next(dataloader)\n> batch_shape = [${batchSize}, 1, 28, 28]`;
+        }
+
+        // Start
+        window.onload = initDataset;
+
+    </script>
+</body>
+</html>
